@@ -3,163 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Unlim Cloud</title>
+    <title>Premium TG Cloud</title>
     <style>
-        :root { --accent: #2481cc; --bg: #0b0e11; --card: #17212b; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
-        
-        /* Premium Header */
-        header { 
-            position: sticky; top: 0; background: rgba(23, 33, 43, 0.95); 
-            backdrop-filter: blur(15px); padding: 15px; text-align: center;
-            border-bottom: 1px solid #2b3948; z-index: 100;
+        :root {
+            --accent: #00d2ff;
+            --bg: #05070a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
-        /* 3-Column Gallery */
+        body {
+            background: var(--bg);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding-bottom: 120px;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            position: sticky;
+            top: 0;
+            background: rgba(10, 15, 25, 0.7);
+            backdrop-filter: blur(15px);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 1000;
+        }
+
+        header h1 {
+            font-size: 18px;
+            margin: 0;
+            background: linear-gradient(to right, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Compact Grid - 3 Columns like Gallery */
         .gallery {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 2px; padding: 2px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3px;
+            padding: 3px;
         }
 
-        .media-item { 
-            aspect-ratio: 1/1; background: var(--card); overflow: hidden; position: relative; 
-            display: flex; align-items: center; justify-content: center;
+        .media-item {
+            aspect-ratio: 1/1;
+            background: var(--card-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            border: 0.5px solid var(--glass-border);
+            transition: transform 0.1s;
+        }
+        
+        .media-item:active { transform: scale(0.95); }
+
+        .media-item img, .media-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .media-item img, .media-item video { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-
-        /* Navigation */
-        .nav-bar {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #17212b; padding: 8px 15px; border-radius: 30px;
-            display: flex; gap: 10px; border: 1px solid #2b3948; z-index: 200;
+        .type-tag {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #fff;
         }
 
-        .nav-btn { color: #808b99; cursor: pointer; padding: 10px 20px; border-radius: 25px; font-size: 13px; transition: 0.3s; }
-        .nav-btn.active { background: var(--accent); color: white; font-weight: bold; }
+        /* Status Text */
+        #status {
+            text-align: center;
+            padding: 8px;
+            font-size: 11px;
+            color: var(--accent);
+            min-height: 15px;
+        }
+
+        /* Premium Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 25, 35, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 6px 10px;
+            border-radius: 30px;
+            display: flex;
+            gap: 5px;
+            z-index: 2000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .nav-btn {
+            color: #888;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+        }
 
         /* Upload FAB */
         .fab {
-            position: fixed; bottom: 85px; right: 20px; width: 55px; height: 55px;
-            background: var(--accent); border-radius: 50%; border: none;
-            color: white; font-size: 30px; cursor: pointer; z-index: 200;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: fixed;
+            bottom: 85px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 2000;
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        #status { text-align: center; padding: 20px; font-size: 14px; color: var(--accent); }
     </style>
 </head>
 <body>
 
-<header><h1 style="font-size: 18px; margin: 0;">My Unlimited Cloud</h1></header>
+<header><h1>MY DIGITAL CLOUD</h1></header>
 
-<div id="status">বোট থেকে ডাটা আনা হচ্ছে...</div>
+<div id="status">Syncing...</div>
 <div class="gallery" id="galleryGrid"></div>
 
 <button class="fab" onclick="document.getElementById('fileInput').click()">+</button>
 <input type="file" id="fileInput" style="display: none;" onchange="uploadFile(this.files)">
 
-<div class="nav-bar">
-    <div class="nav-btn active" id="tab-all" onclick="refresh('all')">All</div>
-    <div class="nav-btn" id="tab-photo" onclick="refresh('photo')">Photos</div>
-    <div class="nav-btn" id="tab-video" onclick="refresh('video')">Videos</div>
+<div class="bottom-nav">
+    <div class="nav-btn active" id="tab-all" onclick="changeTab('all')">All</div>
+    <div class="nav-btn" id="tab-photo" onclick="changeTab('photo')">Photos</div>
+    <div class="nav-btn" id="tab-video" onclick="changeTab('video')">Videos</div>
+    <div class="nav-btn" id="tab-file" onclick="changeTab('file')">Files</div>
 </div>
 
 <script>
-    // আপনার দেওয়া তথ্য
     const TOKEN = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
     const CHAT_ID = '8782276212';
-
+    
     let mediaCache = [];
+    let currentTab = 'all';
 
-    // ১. টেলিগ্রাম থেকে ডাটা আনা
-    async function loadMedia() {
+    async function loadData() {
+        document.getElementById('status').innerText = "Updating gallery...";
         try {
-            const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-50`);
+            const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-100`);
             const data = await res.json();
             
             mediaCache = [];
-            const messages = data.result;
+            data.result.forEach(item => {
+                const msg = item.message || item.channel_post;
+                if (!msg) return;
 
-            for (let m of messages) {
-                const msg = m.message || m.channel_post;
-                if (!msg) continue;
+                let entry = null;
+                if (msg.photo) entry = { type: 'photo', fileId: msg.photo[msg.photo.length - 1].file_id };
+                else if (msg.video) entry = { type: 'video', fileId: msg.video.file_id };
+                else if (msg.document) entry = { type: 'file', fileId: msg.document.file_id, name: msg.document.file_name };
 
-                let item = null;
-                if (msg.photo) {
-                    const fileId = msg.photo[msg.photo.length - 1].file_id;
-                    item = { type: 'photo', fileId };
-                } else if (msg.video) {
-                    item = { type: 'video', fileId: msg.video.file_id };
-                }
-
-                if (item) mediaCache.push(item);
-            }
-            render('all');
-            document.getElementById('status').style.display = 'none';
+                if (entry) mediaCache.push(entry);
+            });
+            render();
+            document.getElementById('status').innerText = "";
         } catch (e) {
-            document.getElementById('status').innerText = "বোট কানেকশন এরর!";
+            document.getElementById('status').innerText = "Sync Failed";
         }
     }
 
-    // ২. ফাইল আইডি থেকে লিঙ্ক তৈরি করে দেখানো
-    async function render(filter) {
+    async function render() {
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
 
-        // বাটন স্টাইল আপডেট
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tab-' + filter).classList.add('active');
-
-        // উল্টো করে দেখানো (নতুন ছবি আগে)
-        const filtered = filter === 'all' ? mediaCache : mediaCache.filter(m => m.type === filter);
+        const filtered = currentTab === 'all' ? mediaCache : mediaCache.filter(m => m.type === currentTab);
         
-        for (let m of filtered.reverse()) {
+        for (let m of [...filtered].reverse()) {
+            const card = document.createElement('div');
+            card.className = 'media-item';
+            
             const fileRes = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${m.fileId}`);
             const fileData = await fileRes.json();
             const url = `https://api.telegram.org/file/bot${TOKEN}/${fileData.result.file_path}`;
 
-            const div = document.createElement('div');
-            div.className = 'media-item';
             if (m.type === 'photo') {
-                div.innerHTML = `<img src="${url}" onclick="window.open('${url}')">`;
+                card.innerHTML = `<img src="${url}" onclick="window.open('${url}')">`;
+            } else if (m.type === 'video') {
+                card.innerHTML = `<video src="${url}" onclick="this.play()"></video><span class="type-tag">Video</span>`;
             } else {
-                div.innerHTML = `<video src="${url}" onclick="this.play()"></video>`;
+                card.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:9px; padding:5px; text-align:center; color:#555;">📄<br>${m.name.substring(0,10)}...</div><span class="type-tag">File</span>`;
+                card.onclick = () => window.open(url);
             }
-            grid.appendChild(div);
+            grid.appendChild(card);
         }
     }
 
-    // ৩. রিফ্রেশ ফাংশন
-    function refresh(type) {
-        render(type);
+    function changeTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        render();
     }
 
-    // ৪. ওয়েবসাইট থেকে আপলোড (সরাসরি আপনার টেলিগ্রামে যাবে)
     async function uploadFile(files) {
         const file = files[0];
         if (!file) return;
 
+        document.getElementById('status').innerText = "Uploading to Cloud...";
         const formData = new FormData();
         formData.append('chat_id', CHAT_ID);
         
-        let apiMethod = file.type.startsWith('video') ? 'sendVideo' : 'sendPhoto';
-        formData.append(file.type.startsWith('video') ? 'video' : 'photo', file);
+        let method = 'sendDocument';
+        let key = 'document';
+        if (file.type.startsWith('image/')) { method = 'sendPhoto'; key = 'photo'; }
+        else if (file.type.startsWith('video/')) { method = 'sendVideo'; key = 'video'; }
 
-        document.getElementById('status').innerText = "টেলিগ্রামে আপলোড হচ্ছে...";
-        document.getElementById('status').style.display = 'block';
+        formData.append(key, file);
 
-        await fetch(`https://api.telegram.org/bot${TOKEN}/${apiMethod}`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        alert("আপলোড সফল! ২-৩ সেকেন্ড পর ডাটা আপডেট হবে।");
-        loadMedia();
+        try {
+            await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, { method: 'POST', body: formData });
+            document.getElementById('status').innerText = "Done! Updating...";
+            setTimeout(loadData, 1500); 
+        } catch(e) {
+            document.getElementById('status').innerText = "Error uploading";
+        }
     }
 
-    // পেজ লোড হলে কল হবে
-    loadMedia();
+    loadData();
 </script>
 </body>
 </html>
