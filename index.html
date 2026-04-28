@@ -3,109 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Cloud Gallery</title>
+    <title>Cloud Gallery Pro</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        :root { --accent: #2481cc; --glass: rgba(255, 255, 255, 0.05); }
-        body { background: #0e1621; color: white; font-family: sans-serif; margin: 0; padding-bottom: 80px; }
-        
-        /* Header */
-        .header { 
-            position: sticky; top: 0; background: rgba(23, 33, 43, 0.9); 
-            backdrop-filter: blur(15px); padding: 15px; text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100;
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
 
-        /* Phone Style Gallery Grid */
+        /* Modern Glass Header */
+        header {
+            position: sticky;
+            top: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 0.5px solid #333;
+        }
+
+        header h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.5px; }
+
+        /* Gallery Grid - ফোনের মতো ৩ কলাম */
         .gallery {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2px;
             padding: 2px;
+            margin-top: 5px;
         }
 
-        .media-box {
+        .photo-card {
             aspect-ratio: 1/1;
-            background: #17212b;
-            position: relative;
+            background: #1c1c1e;
             overflow: hidden;
+            position: relative;
         }
 
-        .media-box img { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Floating Nav */
-        .nav {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(23, 33, 43, 0.8); backdrop-filter: blur(20px);
-            padding: 10px 30px; border-radius: 30px; display: flex; gap: 40px;
-            border: 1px solid rgba(255,255,255,0.1);
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s;
         }
 
-        .nav-item { color: #808b99; text-decoration: none; font-size: 12px; }
-        .active { color: var(--accent); font-weight: bold; }
+        /* Floating Add Button */
+        .add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background: #007aff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
 
-        #login-overlay {
-            position: fixed; inset: 0; background: #0e1621; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        /* Simple Auth Screen */
+        #auth-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 25px;
+            text-align: center;
+            border: 1px solid #333;
+            width: 85%;
+        }
+
+        input[type="password"] {
+            background: #1c1c1e;
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+            margin: 15px 0;
+            outline: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
-        <h2>TG Cloud Login</h2>
-        <div id="tg-login"></div>
-    </div>
-
-    <div class="header">
-        <h1 style="font-size: 18px; margin: 0;">Saved Media</h1>
-    </div>
-
-    <div class="gallery" id="mediaGallery">
+    <div id="auth-screen">
+        <div class="login-card">
+            <h2>Cloud Gallery</h2>
+            <p style="color: #8e8e93;">পাসওয়ার্ড দিয়ে প্রবেশ করুন</p>
+            <input type="password" id="passInput" placeholder="Password">
+            <button onclick="login()" style="width: 100%;" class="login-btn">Login</button>
         </div>
-
-    <div class="nav">
-        <a href="#" class="nav-item active">Photos</a>
-        <a href="#" class="nav-item">Files</a>
-        <a href="#" class="nav-item">Settings</a>
     </div>
+
+    <header>
+        <h1>Photos</h1>
+        <span id="count" style="color: #8e8e93; font-size: 14px;">0 Items</span>
+    </header>
+
+    <div class="gallery" id="galleryGrid"></div>
+
+    <input type="file" id="filePicker" style="display: none;" accept="image/*" multiple>
+    
+    <button class="add-btn" onclick="document.getElementById('filePicker').click()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
 
     <script>
-        // Firebase Config
+        // ১. Firebase Setup (আপনার কনফিগ এখানে দিন)
         const firebaseConfig = {
-            databaseURL: "YOUR_FIREBASE_DB_URL"
+            apiKey: "AIzaSy...",
+            authDomain: "your-app.firebaseapp.com",
+            databaseURL: "https://your-app.firebaseio.com",
+            storageBucket: "your-app.appspot.com"
         };
         firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
         const db = firebase.database();
 
-        // Telegram Auth
-        window.onTelegramAuth = function(user) {
-            document.getElementById('login-overlay').style.display = 'none';
-            loadGallery(user.id);
-        };
+        // ২. Login Logic (সহজ পদ্ধতি)
+        function login() {
+            const pass = document.getElementById('passInput').value;
+            if(pass === "1234") { // আপনার পছন্দের পাসওয়ার্ড দিন
+                document.getElementById('auth-screen').style.display = 'none';
+                loadPhotos();
+            } else { alert("ভুল পাসওয়ার্ড!"); }
+        }
 
-        function loadGallery(userId) {
-            db.ref('users/' + userId + '/files').on('value', (snapshot) => {
-                const gallery = document.getElementById('mediaGallery');
-                gallery.innerHTML = '';
-                snapshot.forEach((child) => {
+        // ৩. Upload Photo
+        document.getElementById('filePicker').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            for(let file of files) {
+                const ref = storage.ref('gallery/' + file.name);
+                await ref.put(file);
+                const url = await ref.getDownloadURL();
+                db.ref('photos').push({ url: url, name: file.name });
+            }
+            alert("আপলোড সফল!");
+        });
+
+        // ৪. Load & Show Photos
+        function loadPhotos() {
+            db.ref('photos').on('value', (snap) => {
+                const grid = document.getElementById('galleryGrid');
+                grid.innerHTML = '';
+                let count = 0;
+                snap.forEach(child => {
+                    count++;
                     const data = child.val();
-                    const div = document.createElement('div');
-                    div.className = 'media-box';
-                    div.innerHTML = `<img src="${data.url}" onclick="window.open('${data.url}')">`;
-                    gallery.appendChild(div);
+                    const item = document.createElement('div');
+                    item.className = 'photo-card';
+                    item.innerHTML = `<img src="${data.url}" onclick="deletePhoto('${child.key}', '${data.name}')">`;
+                    grid.appendChild(item);
                 });
+                document.getElementById('count').innerText = count + " Items";
             });
         }
 
-        // লগইন উইজেট রেন্ডার
-        const script = document.createElement('script');
-        script.src = "https://telegram.org/js/telegram-widget.js?22";
-        script.setAttribute('data-telegram-login', "YOUR_BOT_USERNAME");
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        document.getElementById('tg-login').appendChild(script);
+        // ৫. Delete Photo
+        async function deletePhoto(key, name) {
+            if(confirm("ডিলিট করতে চান?")) {
+                await storage.ref('gallery/' + name).delete();
+                await db.ref('photos/' + key).remove();
+            }
+        }
     </script>
 </body>
 </html>
