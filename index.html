@@ -1,75 +1,3 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium TG Gallery</title>
-    <style>
-        :root {
-            --accent: #00d2ff;
-            --bg: #05070a;
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        body { background: var(--bg); color: #e0e0e0; font-family: sans-serif; margin: 0; padding-bottom: 120px; user-select: none; overflow-x: hidden; }
-        
-        header { position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); backdrop-filter: blur(15px); padding: 15px; text-align: center; border-bottom: 1px solid var(--glass-border); z-index: 1000; }
-        header h1 { font-size: 18px; margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; min-height: 200px; }
-
-        .media-item { aspect-ratio: 1/1; background: var(--card-bg); border-radius: 4px; overflow: hidden; position: relative; border: 0.5px solid var(--glass-border); transition: 0.2s; cursor: pointer; }
-        .media-item.selected { border: 2px solid var(--accent); transform: scale(0.9); opacity: 0.7; }
-        .media-item img, .media-item video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-
-        /* Viewer */
-        #viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; }
-        #viewer-content { width: 100%; height: 70%; display: flex; align-items: center; justify-content: center; }
-        #viewer img, #viewer video { max-width: 95%; max-height: 100%; border-radius: 8px; }
-        .viewer-tools { margin-top: 30px; display: flex; gap: 15px; }
-        .btn { padding: 12px 25px; border-radius: 25px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-dl { background: var(--accent); color: #000; }
-        .btn-close { background: #333; color: #fff; }
-
-        /* Selection Bar */
-        #select-bar { position: fixed; top: 0; left: 0; right: 0; background: var(--accent); color: #000; padding: 15px; display: none; justify-content: space-between; align-items: center; z-index: 2000; }
-
-        /* Bottom Nav */
-        .bottom-nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(20, 25, 35, 0.9); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); padding: 8px 15px; border-radius: 35px; display: flex; gap: 10px; z-index: 2000; }
-        .nav-btn { color: #888; padding: 10px 25px; border-radius: 25px; font-size: 13px; cursor: pointer; transition: 0.3s; min-width: 80px; text-align: center; }
-        .nav-btn.active { background: var(--accent); color: #000; font-weight: bold; }
-
-        #status { text-align: center; font-size: 11px; color: var(--accent); padding: 10px; }
-    </style>
-</head>
-<body>
-
-<div id="select-bar">
-    <span id="select-count">0 Selected</span>
-    <div>
-        <button class="btn btn-close" onclick="cancelSelection()">Cancel</button>
-        <button class="btn btn-dl" onclick="downloadSelected()">Download All</button>
-    </div>
-</div>
-
-<header><h1>CLOUD GALLERY</h1></header>
-<div id="status">Syncing with Cloud...</div>
-<div class="gallery" id="galleryGrid"></div>
-
-<div id="viewer">
-    <div id="viewer-content"></div>
-    <div class="viewer-tools">
-        <button class="btn btn-close" onclick="closeViewer()">Close</button>
-        <a id="dl-link" download><button class="btn btn-dl">Download</button></a>
-    </div>
-</div>
-
-<div class="bottom-nav">
-    <div class="nav-btn active" id="btn-photo" onclick="changeTab('photo')">Photos</div>
-    <div class="nav-btn" id="btn-video" onclick="changeTab('video')">Videos</div>
-</div>
-
 <script>
     const TOKEN = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
     
@@ -77,7 +5,8 @@
     let selectedFiles = new Set();
     let isSelectionMode = false;
     let pressTimer;
-    let currentTab = 'photo'; // Default tab changed to Photos
+    let currentTab = 'photo';
+    let currentRenderId = 0; // বাগ ফিক্স করার জন্য রেন্ডার আইডি
 
     async function loadData() {
         try {
@@ -111,6 +40,9 @@
         const grid = document.getElementById('galleryGrid');
         grid.innerHTML = '';
         
+        // বর্তমান রেন্ডার আইডি বাড়িয়ে দেওয়া যাতে আগের রেন্ডার প্রসেসগুলো বাতিল হয়
+        const thisRenderId = ++currentRenderId;
+        
         const filtered = mediaCache.filter(m => m.type === currentTab);
         const listToDisplay = [...filtered].reverse();
         
@@ -120,31 +52,37 @@
         }
 
         for (let m of listToDisplay) {
-            const card = document.createElement('div');
-            card.className = 'media-item';
-            
-            const fileRes = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${m.fileId}`);
-            const fileData = await fileRes.json();
-            const url = `https://api.telegram.org/file/bot${TOKEN}/${fileData.result.file_path}`;
+            // যদি ইউজার অন্য ট্যাবে ক্লিক করে দেয়, তবে এই লুপটি এখানেই থেমে যাবে
+            if (thisRenderId !== currentRenderId) return;
 
-            card.innerHTML = m.type === 'photo' ? `<img src="${url}">` : `<video src="${url}"></video>`;
-            
-            card.onmousedown = card.ontouchstart = () => { pressTimer = setTimeout(() => startSelection(card, url), 800); };
-            card.onmouseup = card.ontouchend = () => clearTimeout(pressTimer);
-            
-            card.onclick = () => {
-                if (isSelectionMode) toggleSelect(card, url);
-                else openViewer(m.type, url);
-            };
+            try {
+                const fileRes = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${m.fileId}`);
+                const fileData = await fileRes.json();
+                const url = `https://api.telegram.org/file/bot${TOKEN}/${fileData.result.file_path}`;
 
-            grid.appendChild(card);
+                const card = document.createElement('div');
+                card.className = 'media-item';
+                card.innerHTML = m.type === 'photo' ? `<img src="${url}">` : `<video src="${url}"></video>`;
+                
+                card.onmousedown = card.ontouchstart = () => { pressTimer = setTimeout(() => startSelection(card, url), 800); };
+                card.onmouseup = card.ontouchend = () => clearTimeout(pressTimer);
+                
+                card.onclick = () => {
+                    if (isSelectionMode) toggleSelect(card, url);
+                    else openViewer(m.type, url);
+                };
+
+                grid.appendChild(card);
+            } catch(e) { console.error("File load error"); }
         }
     }
 
     function changeTab(tab) {
+        if(currentTab === tab) return; // একই ট্যাবে বারবার ক্লিক করলে কিছু হবে না
         currentTab = tab;
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-' + tab).classList.add('active');
+        cancelSelection(); // ট্যাব বদলালে সিলেকশন মোড বন্ধ হয়ে যাবে
         render();
     }
 
@@ -200,5 +138,3 @@
 
     loadData();
 </script>
-</body>
-</html>
