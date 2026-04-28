@@ -1,182 +1,41 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Gallery Pro</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+const TelegramBot = require('node-telegram-bot-api');
+const admin = require('firebase-admin');
 
-    <style>
-        :root { --accent: #2481cc; --bg: #000; }
-        body { 
-            background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; 
-            margin: 0; padding-bottom: 100px;
-        }
-        
-        header { 
-            position: sticky; top: 0; background: rgba(0,0,0,0.8); 
-            backdrop-filter: blur(20px); padding: 15px; text-align: center;
-            border-bottom: 1px solid #333; z-index: 100;
-        }
+// আপনার টোকেন এবং চ্যাট আইডি
+const token = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
+const myChatId = '8540900103';
 
-        .gallery-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 2px; padding: 2px; min-height: 200px;
-        }
+// Firebase Setup
+// (firebase-key.json ফাইলটি আপনার ফায়ারবেস কনসোল থেকে ডাউনলোড করে নিবেন)
+const serviceAccount = require("./firebase-key.json"); 
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "YOUR_FIREBASE_DATABASE_URL" 
+});
 
-        .media-card {
-            aspect-ratio: 1/1; background: #1c1c1e; position: relative; 
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-        }
+const bot = new TelegramBot(token, {polling: true});
+const db = admin.database();
 
-        .media-card img, .media-card video { width: 100%; height: 100%; object-fit: cover; }
+// ফাইল হ্যান্ডেল করার ফাংশন
+async function handleFile(msg, type) {
+    if (msg.chat.id.toString() !== myChatId) return; // শুধুমাত্র আপনি পাঠালেই সেভ হবে
 
-        /* Navigation Bar */
-        .nav-bar {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #1c1c1e; padding: 10px 20px; border-radius: 30px; 
-            display: flex; gap: 20px; border: 1px solid #333; z-index: 200;
-        }
+    let fileId;
+    if (type === 'photo') fileId = msg.photo[msg.photo.length - 1].file_id;
+    else if (type === 'video') fileId = msg.video.file_id;
+    else fileId = msg.document.file_id;
 
-        .nav-item { 
-            color: #8e8e93; padding: 8px 15px; border-radius: 20px; 
-            cursor: pointer; font-size: 14px; transition: 0.3s;
-        }
-        
-        .nav-item.active { background: var(--accent); color: #fff; font-weight: bold; }
+    const fileLink = await bot.getFileLink(fileId);
 
-        .fab {
-            position: fixed; bottom: 85px; right: 20px;
-            width: 50px; height: 50px; background: var(--accent);
-            border-radius: 50%; border: none; color: white; font-size: 24px;
-            cursor: pointer; z-index: 200;
-        }
-    </style>
-</head>
-<body>
+    db.ref(type).push({
+        url: fileLink,
+        name: msg.caption || type + "_" + Date.now(),
+        timestamp: Date.now()
+    });
 
-<header><h1 id="viewTitle">Photos</h1></header>
+    bot.sendMessage(myChatId, `✅ ${type.toUpperCase()} আপনার ওয়েবসাইটে যোগ করা হয়েছে!`);
+}
 
-<div class="gallery-grid" id="mainGallery">
-    <div style="grid-column: span 3; padding: 50px; text-align: center;">Loading...</div>
-</div>
-
-<button class="fab" onclick="document.getElementById('fileInput').click()">+</button>
-<input type="file" id="fileInput" style="display: none;" onchange="uploadFile(this.files)">
-
-<div class="nav-bar">
-    <div id="btn-photo" class="nav-item active" onclick="switchTab('photo')">Photos</div>
-    <div id="btn-video" class="nav-item" onclick="switchTab('video')">Videos</div>
-    <div id="btn-file" class="nav-item" onclick="switchTab('file')">Files</div>
-</div>
-
-<script>
-    // 1. Firebase Config (Ekhane apnar data thikmoto boshan)
-    const firebaseConfig = {
-        apiKey: "AIzaSy...",
-        databaseURL: "YOUR_DATABASE_URL",
-        storageBucket: "YOUR_STORAGE_BUCKET"
-    };
-    
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.database();
-    const storage = firebase.storage();
-
-    let currentTab = 'photo';
-
-    // 2. Tab Switching (Aro kothur vabe fix kora hoyeche)
-    function switchTab(type) {
-        console.log("Switching to: " + type);
-        currentTab = type;
-
-        // Header Update
-        document.getElementById('viewTitle').innerText = type.charAt(0).toUpperCase() + type.slice(1) + "s";
-
-        // CSS Classes Update
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        document.getElementById('btn-' + type).classList.add('active');
-
-        // Reload Data
-        loadData();
-    }
-
-    // 3. Data Load Function
-    function loadData() {
-        const grid = document.getElementById('mainGallery');
-        
-        // Real-time listener: Ekbar set korle data change holei update hobe
-        db.ref(currentTab).off(); // Purono listener bondho kora
-        db.ref(currentTab).on('value', (snapshot) => {
-            grid.innerHTML = '';
-            
-            if (!snapshot.exists()) {
-                grid.innerHTML = '<div style="grid-column: span 3; padding: 50px; text-align: center;">No ' + currentTab + 's found.</div>';
-                return;
-            }
-
-            snapshot.forEach((child) => {
-                const data = child.val();
-                const card = document.createElement('div');
-                card.className = 'media-card';
-
-                if (currentTab === 'photo') {
-                    card.innerHTML = `<img src="${data.url}" onclick="window.open('${data.url}')">`;
-                } else if (currentTab === 'video') {
-                    card.innerHTML = `<video src="${data.url}" controls></video>`;
-                } else {
-                    card.innerHTML = `<div style="text-align:center; font-size:12px;">📄<br>${data.name}</div>`;
-                }
-
-                // Delete Button
-                const del = document.createElement('button');
-                del.innerHTML = "×";
-                del.style = "position:absolute; top:5px; right:5px; background:red; border:none; color:white; border-radius:50%; width:20px; height:20px; cursor:pointer;";
-                del.onclick = () => deleteItem(child.key, data.storagePath);
-                
-                card.appendChild(del);
-                grid.appendChild(card);
-            });
-        });
-    }
-
-    // 4. Upload Function
-    async function uploadFile(files) {
-        const file = files[0];
-        if (!file) return;
-
-        const path = currentTab + "s/" + Date.now() + "_" + file.name;
-        const ref = storage.ref(path);
-
-        try {
-            alert("Uploading " + currentTab + "...");
-            await ref.put(file);
-            const url = await ref.getDownloadURL();
-            
-            await db.ref(currentTab).push({
-                url: url,
-                name: file.name,
-                storagePath: path
-            });
-            alert("Upload Successful!");
-        } catch (e) {
-            alert("Error: " + e.message);
-        }
-    }
-
-    // 5. Delete Function
-    async function deleteItem(key, path) {
-        if (confirm("Delete korte chan?")) {
-            if (path) await storage.ref(path).delete().catch(e => console.log("Storage file not found"));
-            await db.ref(currentTab + "/" + key).remove();
-        }
-    }
-
-    // Initial Load
-    window.onload = loadData;
-</script>
-</body>
-</html>
+bot.on('photo', (msg) => handleFile(msg, 'photo'));
+bot.on('video', (msg) => handleFile(msg, 'video'));
+bot.on('document', (msg) => handleFile(msg, 'file'));
