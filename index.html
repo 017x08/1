@@ -1,70 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Tool Hub | Passive Income Project</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Firebase Photo Manager</title>
     <style>
         body {
-            background: radial-gradient(circle at top, #1a202c 0%, #070b0d 100%);
-            color: white;
+            background: #0f172a;
+            color: #f8fafc;
             font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header { text-align: center; margin-bottom: 40px; }
+        
+        .upload-box {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+        }
+
+        input[type="file"] {
+            background: #334155;
+            border-radius: 8px;
+            padding: 8px;
+            border: none;
+            color: white;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover { background: #2563eb; transform: translateY(-2px); }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .img-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: 0.3s;
         }
-        .glass:hover {
-            border: 1px solid rgba(0, 255, 150, 0.4);
-            transform: translateY(-5px);
+
+        .img-card img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 14px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-6">
+<body>
 
-    <header class="text-center my-12">
-        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
-            Smart Tool Marketplace
-        </h1>
-        <p class="text-gray-400 mt-2 text-sm italic">High Efficiency Tools for Your Daily Tasks</p>
-    </header>
-
-    <div class="w-full max-w-4xl h-24 glass flex items-center justify-center mb-10">
-        <span class="text-gray-500 text-xs tracking-widest uppercase">Your Ad Banner Here (AdSense)</span>
+<div class="glass-panel">
+    <div class="header">
+        <h1>Cloud Image Manager</h1>
+        <p>Firebase-er maddhome chobi add ebong delete korun</p>
     </div>
 
-    <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
-        
-        <div class="glass p-6 text-center">
-            <div class="text-3xl mb-4">🖼️</div>
-            <h3 class="text-xl font-bold mb-2">Image Converter</h3>
-            <p class="text-gray-400 text-sm mb-4">Convert PNG to JPG instantly without losing quality.</p>
-            <button class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-sm font-bold transition">Open Tool</button>
+    <div class="upload-box">
+        <input type="file" id="photoInput">
+        <button id="uploadBtn">Upload Photo</button>
+    </div>
+
+    <div class="gallery" id="imageGallery">
         </div>
+</div>
 
-        <div class="glass p-6 text-center">
-            <div class="text-3xl mb-4">🔗</div>
-            <h3 class="text-xl font-bold mb-2">URL Shortener</h3>
-            <p class="text-gray-400 text-sm mb-4">Shorten long links for your social media bios.</p>
-            <button class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold transition">Open Tool</button>
-        </div>
+<script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database-compat.js"></script>
 
-        <div class="glass p-6 text-center">
-            <div class="text-3xl mb-4">🎼</div>
-            <h3 class="text-xl font-bold mb-2">Strings Guide</h3>
-            <p class="text-gray-400 text-sm mb-4">Compare best strings from brands like Alice or Zico.</p>
-            <button class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-lg text-sm font-bold transition">View Guide</button>
-        </div>
+<script>
+    // Apnar Firebase Config ekhane boshan
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "YOUR_DATABASE_URL",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
 
-    </main>
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+    const db = firebase.database();
 
-    <footer class="mt-20 text-center text-gray-500">
-        <p class="text-xs">© 2026 Your Digital Asset. Powered by GitHub Pages.</p>
-    </footer>
+    // -- Logic: Upload Image --
+    document.getElementById('uploadBtn').onclick = async () => {
+        const file = document.getElementById('photoInput').files[0];
+        if (!file) return alert("File select korun!");
+
+        const storageRef = storage.ref('photos/' + file.name);
+        await storageRef.put(file);
+        const url = await storageRef.getDownloadURL();
+
+        // Database e save kora
+        db.ref('images').push({ url: url, name: file.name });
+        alert("Upload Sesh!");
+        location.reload();
+    };
+
+    // -- Logic: Load Images --
+    db.ref('images').on('value', (snapshot) => {
+        const gallery = document.getElementById('imageGallery');
+        gallery.innerHTML = '';
+        snapshot.forEach((child) => {
+            const data = child.val();
+            gallery.innerHTML += `
+                <div class="img-card">
+                    <img src="${data.url}">
+                    <button class="delete-btn" onclick="deleteImg('${child.key}', '${data.name}')">Delete</button>
+                </div>
+            `;
+        });
+    });
+
+    // -- Logic: Delete Image --
+    window.deleteImg = async (key, name) => {
+        if(confirm("Delete korte chan?")) {
+            await storage.ref('photos/' + name).delete();
+            await db.ref('images/' + key).remove();
+            alert("Deleted!");
+        }
+    };
+</script>
 
 </body>
 </html>
