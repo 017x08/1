@@ -3,208 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drive Gallery Pro</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <title>TG Cloud Gallery</title>
     <style>
         :root {
-            --bg: #000000;
-            --card-bg: rgba(255, 255, 255, 0.08);
-            --accent: #0a84ff;
+            --tg-theme: #2481cc;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         body {
-            background-color: var(--bg);
+            background-color: #0e1621; /* Telegram Desktop Dark Color */
             color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: env(safe-area-inset-top) 15px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        /* Phone Gallery Header */
-        .header {
+        /* App-like Header */
+        .app-bar {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(23, 33, 43, 0.95);
+            backdrop-filter: blur(10px);
             position: sticky;
             top: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-            padding: 20px 0;
             z-index: 100;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--border);
         }
 
-        .header h1 { font-size: 28px; margin: 0; font-weight: 700; }
+        .app-bar h1 { font-size: 20px; margin: 0; color: var(--tg-theme); }
 
-        /* Gallery Grid */
-        .gallery {
+        /* Login Section */
+        #login-container {
+            margin-top: 100px;
+            text-align: center;
+            padding: 40px;
+            background: var(--glass);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(15px);
+        }
+
+        /* Gallery Grid (Phone Gallery Style) */
+        .gallery-container {
+            display: none; /* লগইনের পর এটি ব্লক হবে */
+            width: 100%;
+            max-width: 800px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* ফোনের গ্যালারির মতো ৩ কলাম */
-            gap: 2px;
-            margin-top: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
         }
 
-        .photo-item {
-            aspect-ratio: 1 / 1;
-            background: var(--card-bg);
-            overflow: hidden;
+        .media-item {
+            aspect-ratio: 1/1;
+            background: #17212b;
             position: relative;
+            overflow: hidden;
             cursor: pointer;
         }
 
-        .photo-item img {
+        .media-item img, .media-item video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease;
         }
 
-        .photo-item:hover img { transform: scale(1.05); }
-
-        /* Floating Action Button */
-        .fab {
+        /* Horizontal App-style Navigation (As you requested before) */
+        .nav-bar {
             position: fixed;
-            bottom: 30px;
-            right: 20px;
-            background: var(--accent);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+            bottom: 20px;
+            background: rgba(23, 33, 43, 0.9);
+            padding: 10px 25px;
+            border-radius: 30px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(10, 132, 255, 0.4);
-            font-size: 24px;
-            cursor: pointer;
-            border: none;
-            color: white;
+            gap: 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
         }
 
-        .auth-btn {
-            background: white;
-            color: black;
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .nav-item { color: #808b99; text-decoration: none; font-size: 14px; }
+        .nav-item.active { color: var(--tg-theme); font-weight: bold; }
 
-        #login-screen {
-            height: 80vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h1>Photos</h1>
-        <p>আপনার গুগল ড্রাইভের ফটোগুলো দেখতে সাইন-ইন করুন</p>
-        <button class="auth-btn" onclick="handleAuthClick()">Google দিয়ে লগইন করুন</button>
+    <div class="app-bar">
+        <h1>TG Cloud</h1>
+        <div id="user-info"></div>
     </div>
 
-    <div id="main-content" style="display: none;">
-        <div class="header">
-            <h1>Library</h1>
-            <button class="auth-btn" style="background: #333; color: white;" onclick="handleSignoutClick()">Logout</button>
-        </div>
+    <div id="login-container">
+        <img src="https://telegram.org/img/t_logo.png" width="60" alt="TG">
+        <h2>Welcome to Your Cloud</h2>
+        <p>আপনার টেলিগ্রাম ফাইলগুলো দেখতে লগইন করুন</p>
+        
+        <script async src="https://telegram.org/js/telegram-widget.js?22" 
+                data-telegram-login="YOUR_BOT_USERNAME" 
+                data-size="large" 
+                data-onauth="onTelegramAuth(user)" 
+                data-request-access="write"></script>
+    </div>
 
-        <div class="gallery" id="gallery">
+    <div class="gallery-container" id="gallery-container">
+        <div class="gallery-grid" id="media-grid">
             </div>
+    </div>
 
-        <button class="fab" onclick="uploadNew()">+</button>
+    <div class="nav-bar">
+        <a href="#" class="nav-item active">Photos</a>
+        <a href="#" class="nav-item">Videos</a>
+        <a href="#" class="nav-item">Settings</a>
     </div>
 
     <script>
-        const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-        const API_KEY = 'YOUR_API_KEY';
-        const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
-        const SCOPES = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
+        function onTelegramAuth(user) {
+            console.log('Logged in as: ' + user.first_name);
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('gallery-container').style.display = 'block';
+            document.getElementById('user-info').innerText = user.first_name;
+            
+            loadTelegramMedia(user.id);
+        }
 
-        let tokenClient;
-        let gapiInited = false;
-        let gsisInited = false;
+        async function loadTelegramMedia(userId) {
+            // আপনার বোট বা ডাটাবেস থেকে ফাইল লিস্ট নিয়ে আসার কোড এখানে হবে
+            // আপাতত স্যাম্পল ডাটা দিয়ে দেখানো হলো
+            const grid = document.getElementById('media-grid');
+            
+            // স্যাম্পল ডেটা (আপনার বোট এই ডাটাবেসটি মেইনটেইন করবে)
+            const sampleFiles = [
+                { type: 'image', url: 'https://via.placeholder.com/300' },
+                { type: 'image', url: 'https://via.placeholder.com/301' },
+                { type: 'image', url: 'https://via.placeholder.com/302' }
+            ];
 
-        // ১. API লোড করা
-        function gapiLoaded() {
-            gapi.load('client', async () => {
-                await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-                gapiInited = true;
-                checkBeforeStart();
+            sampleFiles.forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'media-item';
+                div.innerHTML = `<img src="${file.url}" alt="TG Media">`;
+                grid.appendChild(div);
             });
-        }
-
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: '', // পরে ডিফাইন করা হবে
-            });
-            gsisInited = true;
-            checkBeforeStart();
-        }
-
-        function checkBeforeStart() {
-            if (gapiInited && gsisInited) {
-                // অটো লগইন চেক করা যেতে পারে এখানে
-            }
-        }
-
-        // ২. অথেন্টিকেশন হ্যান্ডেল
-        function handleAuthClick() {
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) throw (resp);
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                listPhotos();
-            };
-            tokenClient.requestAccessToken({prompt: 'consent'});
-        }
-
-        // ৩. ড্রাইভ থেকে ফটো লিস্ট করা
-        async function listPhotos() {
-            try {
-                const response = await gapi.client.drive.files.list({
-                    'pageSize': 30,
-                    'fields': "files(id, name, thumbnailLink, webContentLink)",
-                    'q': "mimeType contains 'image/'"
-                });
-                const files = response.result.files;
-                const gallery = document.getElementById('gallery');
-                gallery.innerHTML = '';
-
-                files.forEach(file => {
-                    const div = document.createElement('div');
-                    div.className = 'photo-item';
-                    // thumbnailLink-এ সাইজ বাড়ানোর জন্য =s220 থেকে =s500 করা যায়
-                    const imgUrl = file.thumbnailLink.replace('=s220', '=s500');
-                    div.innerHTML = `<img src="${imgUrl}" loading="lazy" onclick="window.open('${file.webContentLink}')">`;
-                    gallery.appendChild(div);
-                });
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function handleSignoutClick() {
-            const token = gapi.client.getToken();
-            if (token !== null) {
-                google.accounts.oauth2.revoke(token.access_token);
-                gapi.client.setToken('');
-                location.reload();
-            }
-        }
-
-        function uploadNew() {
-            alert("ফাইল আপলোড করার জন্য Google Picker বা ড্রাইভ API-এর 'create' মেথড ব্যবহার করতে হবে।");
         }
     </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
