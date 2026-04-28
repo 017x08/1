@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium TG Gallery</title>
+    <title>HRIDOY'S GALLERY</title>
     <style>
         :root {
             --accent: #00d2ff;
@@ -14,8 +14,11 @@
 
         body { background: var(--bg); color: #e0e0e0; font-family: sans-serif; margin: 0; padding-bottom: 120px; user-select: none; overflow-x: hidden; }
         
-        header { position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); backdrop-filter: blur(15px); padding: 15px; text-align: center; border-bottom: 1px solid var(--glass-border); z-index: 1000; }
-        header h1 { font-size: 18px; margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Premium Header with Your Name */
+        header { position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); backdrop-filter: blur(15px); padding: 18px; text-align: center; border-bottom: 1px solid var(--glass-border); z-index: 1000; }
+        header h1 { font-size: 20px; margin: 0; font-weight: 800; letter-spacing: 1.5px; background: linear-gradient(to right, #00d2ff, #3a7bd5, #00d2ff); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shine 3s linear infinite; }
+        
+        @keyframes shine { to { background-position: 200% center; } }
 
         .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; min-height: 200px; }
 
@@ -53,7 +56,7 @@
     </div>
 </div>
 
-<header><h1>CLOUD GALLERY</h1></header>
+<header><h1>HRIDOY'S GALLERY</h1></header>
 <div id="status">Syncing with Cloud...</div>
 <div class="gallery" id="galleryGrid"></div>
 
@@ -189,6 +192,7 @@
         isSelectionMode = false;
         selectedFiles.clear();
         document.querySelectorAll('.media-item').forEach(i => i.classList.remove('selected'));
+        document.getElementById('select-bar').style.none;
         document.getElementById('select-bar').style.display = 'none';
     }
 
@@ -196,7 +200,7 @@
         for (let url of selectedFiles) {
             const a = document.createElement('a');
             a.href = url;
-            a.download = "cloud_file_" + Date.now();
+            a.download = "HRIDOY_GALLERY_" + Date.now();
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
