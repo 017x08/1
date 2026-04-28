@@ -1,47 +1,148 @@
-const TelegramBot = require('node-telegram-bot-api');
-const admin = require('firebase-admin');
-
-// আপনার দেওয়া আইডি
-const token = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
-const myChatId = '8782276212'; // আপনার আপডেট করা আইডি
-
-// Firebase Setup
-const serviceAccount = require("./firebase-key.json"); 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "YOUR_FIREBASE_DATABASE_URL" // আপনার ফায়ারবেস ইউআরএল এখানে দিন
-});
-
-const bot = new TelegramBot(token, {polling: true});
-const db = admin.database();
-
-async function handleFile(msg, type) {
-    // আইডি চেক (নিরাপত্তার জন্য)
-    if (msg.chat.id.toString() !== myChatId) return;
-
-    let fileId;
-    if (type === 'photo') fileId = msg.photo[msg.photo.length - 1].file_id;
-    else if (type === 'video') fileId = msg.video.file_id;
-    else fileId = msg.document.file_id;
-
-    try {
-        const fileLink = await bot.getFileLink(fileId);
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Manager Pro</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <style>
+        :root { --accent: #0088cc; --bg: #000; --card: #1c1c1e; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 120px; }
         
-        // Firebase এ ডাটা পাঠানো
-        await db.ref(type).push({
-            url: fileLink,
-            name: msg.caption || type + "_" + Date.now(),
-            timestamp: Date.now()
-        });
+        header { 
+            position: sticky; top: 0; background: rgba(0,0,0,0.85); 
+            backdrop-filter: blur(20px); padding: 18px; text-align: center;
+            border-bottom: 0.5px solid #333; z-index: 100;
+        }
 
-        bot.sendMessage(myChatId, `✅ সফলভাবে আপনার ওয়েবসাইটের ${type} সেকশনে যোগ করা হয়েছে!`);
-    } catch (error) {
-        bot.sendMessage(myChatId, "❌ ফাইল সেভ করতে সমস্যা হয়েছে।");
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 2px; padding: 2px; min-height: 400px;
+        }
+
+        .media-card {
+            aspect-ratio: 1/1; background: var(--card); position: relative; 
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+
+        .media-card img, .media-card video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .del-btn {
+            position: absolute; top: 5px; right: 5px; background: rgba(255, 69, 58, 0.9);
+            border: none; color: white; border-radius: 50%; width: 24px; height: 24px; 
+            cursor: pointer; font-weight: bold; z-index: 10;
+        }
+
+        /* Bottom Navigation Bar */
+        .nav-bar {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(20px);
+            padding: 10px 20px; border-radius: 35px; display: flex; gap: 15px;
+            border: 1px solid #333; z-index: 200;
+        }
+
+        .nav-item { 
+            color: #8e8e93; padding: 8px 16px; border-radius: 20px; 
+            cursor: pointer; font-size: 13px; transition: 0.3s;
+        }
+        .nav-item.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+        .fab {
+            position: fixed; bottom: 95px; right: 25px;
+            width: 55px; height: 55px; background: var(--accent);
+            border-radius: 50%; border: none; color: white; font-size: 30px;
+            cursor: pointer; z-index: 200; box-shadow: 0 8px 20px rgba(0,136,204,0.4);
+        }
+    </style>
+</head>
+<body>
+
+<header><h1 id="viewTitle">Photos</h1></header>
+
+<div class="gallery-grid" id="mainGallery">
+    </div>
+
+<button class="fab" onclick="document.getElementById('fileInput').click()">+</button>
+<input type="file" id="fileInput" style="display: none;" onchange="uploadFromWeb(this.files)">
+
+<div class="nav-bar">
+    <div id="tab-photo" class="nav-item active" onclick="switchTab('photo')">Photos</div>
+    <div id="tab-video" class="nav-item" onclick="switchTab('video')">Videos</div>
+    <div id="tab-file" class="nav-item" onclick="switchTab('file')">Files</div>
+</div>
+
+<script>
+    // Firebase Config (আপনার ডাটা এখানে বসান)
+    const firebaseConfig = {
+        databaseURL: "YOUR_FIREBASE_DATABASE_URL",
+        storageBucket: "YOUR_STORAGE_BUCKET_URL"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const storage = firebase.storage();
+
+    let currentTab = 'photo';
+
+    function switchTab(type) {
+        currentTab = type;
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.getElementById('tab-' + type).classList.add('active');
+        document.getElementById('viewTitle').innerText = type.charAt(0).toUpperCase() + type.slice(1) + "s";
+        loadData();
     }
-}
 
-bot.on('photo', (msg) => handleFile(msg, 'photo'));
-bot.on('video', (msg) => handleFile(msg, 'video'));
-bot.on('document', (msg) => handleFile(msg, 'file'));
+    function loadData() {
+        const grid = document.getElementById('mainGallery');
+        db.ref(currentTab).off(); // পুরনো লিসেনার বন্ধ করা
+        db.ref(currentTab).on('value', (snapshot) => {
+            grid.innerHTML = '';
+            if (!snapshot.exists()) {
+                grid.innerHTML = `<div style="grid-column: span 3; padding: 100px 0; text-align: center; color: #555;">কোনো ফাইল পাওয়া যায়নি।</div>`;
+                return;
+            }
+            snapshot.forEach((child) => {
+                const data = child.val();
+                const card = document.createElement('div');
+                card.className = 'media-card';
+                
+                if(currentTab === 'photo') card.innerHTML = `<img src="${data.url}" onclick="window.open('${data.url}')">`;
+                else if(currentTab === 'video') card.innerHTML = `<video src="${data.url}" onclick="this.play()"></video>`;
+                else card.innerHTML = `<div style="font-size:11px; text-align:center;">📄<br>${data.name.substring(0,15)}</div>`;
 
-console.log("Bot is running...");
+                const btn = document.createElement('button');
+                btn.className = 'del-btn'; btn.innerText = '×';
+                btn.onclick = (e) => { e.stopPropagation(); deleteItem(child.key, data.storagePath); };
+                
+                card.appendChild(btn);
+                grid.appendChild(card);
+            });
+        });
+    }
+
+    async function uploadFromWeb(files) {
+        const file = files[0]; if(!file) return;
+        const path = `${currentTab}s/${Date.now()}_${file.name}`;
+        const ref = storage.ref(path);
+        
+        alert("আপলোড শুরু হচ্ছে...");
+        try {
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+            await db.ref(currentTab).push({ url: url, name: file.name, storagePath: path });
+            alert("সফলভাবে আপলোড হয়েছে!");
+        } catch(e) { alert("আপলোড এরর!"); }
+    }
+
+    async function deleteItem(key, path) {
+        if(confirm("এটি ডিলিট করতে চান?")) {
+            if(path) await storage.ref(path).delete().catch(() => {});
+            await db.ref(currentTab + '/' + key).remove();
+        }
+    }
+
+    window.onload = loadData;
+</script>
+</body>
+</html>
