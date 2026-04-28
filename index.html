@@ -3,146 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Manager Pro</title>
+    <title>TG Cloud Manager</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
     <style>
-        :root { --accent: #0088cc; --bg: #000; --card: #1c1c1e; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 120px; }
-        
-        header { 
-            position: sticky; top: 0; background: rgba(0,0,0,0.85); 
+        :root { --accent: #2481cc; --bg: #000; --card: #1c1c1e; }
+        body { 
+            background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; 
+            margin: 0; padding-bottom: 110px; overflow-x: hidden;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            position: sticky; top: 0; background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(20px); padding: 18px; text-align: center;
             border-bottom: 0.5px solid #333; z-index: 100;
         }
 
+        /* Gallery Grid (3 Columns like Phone Gallery) */
         .gallery-grid {
             display: grid; grid-template-columns: repeat(3, 1fr);
             gap: 2px; padding: 2px; min-height: 400px;
         }
 
         .media-card {
-            aspect-ratio: 1/1; background: var(--card); position: relative; 
+            aspect-ratio: 1/1; background: var(--card); position: relative;
             overflow: hidden; display: flex; align-items: center; justify-content: center;
         }
 
         .media-card img, .media-card video { width: 100%; height: 100%; object-fit: cover; }
-        
+
         .del-btn {
-            position: absolute; top: 5px; right: 5px; background: rgba(255, 69, 58, 0.9);
-            border: none; color: white; border-radius: 50%; width: 24px; height: 24px; 
-            cursor: pointer; font-weight: bold; z-index: 10;
+            position: absolute; top: 5px; right: 5px; background: rgba(255, 59, 48, 0.9);
+            border: none; color: white; border-radius: 50%; width: 22px; height: 22px;
+            font-size: 14px; cursor: pointer; z-index: 10;
         }
 
-        /* Bottom Navigation Bar */
+        /* Floating Nav Bar */
         .nav-bar {
             position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(20px);
-            padding: 10px 20px; border-radius: 35px; display: flex; gap: 15px;
+            background: rgba(28, 28, 30, 0.9); backdrop-filter: blur(20px);
+            padding: 8px 15px; border-radius: 35px; display: flex; gap: 10px;
             border: 1px solid #333; z-index: 200;
         }
 
-        .nav-item { 
-            color: #8e8e93; padding: 8px 16px; border-radius: 20px; 
+        .nav-item {
+            color: #8e8e93; padding: 10px 18px; border-radius: 25px;
             cursor: pointer; font-size: 13px; transition: 0.3s;
         }
+
         .nav-item.active { background: var(--accent); color: #fff; font-weight: 600; }
 
+        /* Floating Action Button */
         .fab {
-            position: fixed; bottom: 95px; right: 25px;
-            width: 55px; height: 55px; background: var(--accent);
-            border-radius: 50%; border: none; color: white; font-size: 30px;
-            cursor: pointer; z-index: 200; box-shadow: 0 8px 20px rgba(0,136,204,0.4);
+            position: fixed; bottom: 95px; right: 25px; width: 56px; height: 56px;
+            background: var(--accent); border-radius: 50%; border: none;
+            color: white; font-size: 28px; cursor: pointer; z-index: 200;
+            box-shadow: 0 8px 20px rgba(36, 129, 204, 0.4);
+        }
+
+        /* Auth Screen */
+        #auth-screen {
+            position: fixed; inset: 0; background: #000; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        .login-box {
+            background: var(--card); padding: 30px; border-radius: 25px;
+            text-align: center; width: 85%; max-width: 350px; border: 1px solid #333;
+        }
+
+        input {
+            width: 100%; padding: 12px; margin: 20px 0; border-radius: 12px;
+            border: 1px solid #444; background: #000; color: #fff; outline: none;
         }
     </style>
 </head>
 <body>
 
-<header><h1 id="viewTitle">Photos</h1></header>
-
-<div class="gallery-grid" id="mainGallery">
+    <div id="auth-screen">
+        <div class="login-box">
+            <h2 style="margin-top:0;">Cloud Manager</h2>
+            <p style="color:#8e8e93; font-size:14px;">আপনার পিন কোড দিন</p>
+            <input type="password" id="pinCode" placeholder="Enter PIN">
+            <button onclick="checkAuth()" style="width:100%; padding:12px; border-radius:12px; border:none; background:var(--accent); color:white; font-weight:bold;">Login</button>
+        </div>
     </div>
 
-<button class="fab" onclick="document.getElementById('fileInput').click()">+</button>
-<input type="file" id="fileInput" style="display: none;" onchange="uploadFromWeb(this.files)">
+    <header>
+        <h1 id="tabTitle" style="font-size: 18px; margin: 0;">Photos</h1>
+    </header>
 
-<div class="nav-bar">
-    <div id="tab-photo" class="nav-item active" onclick="switchTab('photo')">Photos</div>
-    <div id="tab-video" class="nav-item" onclick="switchTab('video')">Videos</div>
-    <div id="tab-file" class="nav-item" onclick="switchTab('file')">Files</div>
-</div>
+    <div class="gallery-grid" id="mainGallery"></div>
 
-<script>
-    // Firebase Config (আপনার ডাটা এখানে বসান)
-    const firebaseConfig = {
-        databaseURL: "YOUR_FIREBASE_DATABASE_URL",
-        storageBucket: "YOUR_STORAGE_BUCKET_URL"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storage = firebase.storage();
+    <input type="file" id="fileUpload" style="display: none;" onchange="uploadFile(this.files)">
 
-    let currentTab = 'photo';
+    <button class="fab" onclick="document.getElementById('fileUpload').click()">+</button>
 
-    function switchTab(type) {
-        currentTab = type;
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.getElementById('tab-' + type).classList.add('active');
-        document.getElementById('viewTitle').innerText = type.charAt(0).toUpperCase() + type.slice(1) + "s";
-        loadData();
-    }
+    <div class="nav-bar">
+        <div class="nav-item active" id="btn-photo" onclick="changeTab('photo')">Photos</div>
+        <div class="nav-item" id="btn-video" onclick="changeTab('video')">Videos</div>
+        <div class="nav-item" id="btn-file" onclick="changeTab('file')">Files</div>
+    </div>
 
-    function loadData() {
-        const grid = document.getElementById('mainGallery');
-        db.ref(currentTab).off(); // পুরনো লিসেনার বন্ধ করা
-        db.ref(currentTab).on('value', (snapshot) => {
-            grid.innerHTML = '';
-            if (!snapshot.exists()) {
-                grid.innerHTML = `<div style="grid-column: span 3; padding: 100px 0; text-align: center; color: #555;">কোনো ফাইল পাওয়া যায়নি।</div>`;
-                return;
+    <script>
+        // ১. Firebase Configuration (আপনার Firebase থেকে ডাটা এখানে বসান)
+        const firebaseConfig = {
+            databaseURL: "YOUR_FIREBASE_DB_URL",
+            storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        let currentTab = 'photo';
+
+        // ২. Auth Logic
+        function checkAuth() {
+            const pin = document.getElementById('pinCode').value;
+            if(pin === "8782") { // আপনার পছন্দের পিন কোড এখানে দিন
+                document.getElementById('auth-screen').style.display = 'none';
+                loadGallery();
+            } else {
+                alert("ভুল পিন!");
             }
-            snapshot.forEach((child) => {
-                const data = child.val();
-                const card = document.createElement('div');
-                card.className = 'media-card';
-                
-                if(currentTab === 'photo') card.innerHTML = `<img src="${data.url}" onclick="window.open('${data.url}')">`;
-                else if(currentTab === 'video') card.innerHTML = `<video src="${data.url}" onclick="this.play()"></video>`;
-                else card.innerHTML = `<div style="font-size:11px; text-align:center;">📄<br>${data.name.substring(0,15)}</div>`;
+        }
 
-                const btn = document.createElement('button');
-                btn.className = 'del-btn'; btn.innerText = '×';
-                btn.onclick = (e) => { e.stopPropagation(); deleteItem(child.key, data.storagePath); };
-                
-                card.appendChild(btn);
-                grid.appendChild(card);
+        // ৩. Tab Switching
+        function changeTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('btn-' + tab).classList.add('active');
+            document.getElementById('tabTitle').innerText = tab.charAt(0).toUpperCase() + tab.slice(1) + "s";
+            loadGallery();
+        }
+
+        // ৪. Load Data
+        function loadGallery() {
+            const grid = document.getElementById('mainGallery');
+            grid.innerHTML = '';
+            
+            db.ref(currentTab).on('value', (snapshot) => {
+                grid.innerHTML = '';
+                if(!snapshot.exists()) {
+                    grid.innerHTML = '<div style="grid-column:span 3; padding:100px 0; text-align:center; color:#444;">No Content</div>';
+                    return;
+                }
+                snapshot.forEach(child => {
+                    const data = child.val();
+                    const card = document.createElement('div');
+                    card.className = 'media-card';
+                    
+                    if(currentTab === 'photo') {
+                        card.innerHTML = `<img src="${data.url}" onclick="window.open('${data.url}')">`;
+                    } else if(currentTab === 'video') {
+                        card.innerHTML = `<video src="${data.url}" controls></video>`;
+                    } else {
+                        card.innerHTML = `<div style="text-align:center; font-size:12px;">📄<br>${data.name.substring(0,10)}</div>`;
+                    }
+
+                    const del = document.createElement('button');
+                    del.className = 'del-btn'; del.innerText = '×';
+                    del.onclick = () => deleteMedia(child.key, data.path);
+                    card.appendChild(del);
+                    grid.appendChild(card);
+                });
             });
-        });
-    }
+        }
 
-    async function uploadFromWeb(files) {
-        const file = files[0]; if(!file) return;
-        const path = `${currentTab}s/${Date.now()}_${file.name}`;
-        const ref = storage.ref(path);
-        
-        alert("আপলোড শুরু হচ্ছে...");
-        try {
+        // ৫. Website Upload Logic
+        async function uploadFile(files) {
+            const file = files[0]; if(!file) return;
+            const path = `${currentTab}s/${Date.now()}_${file.name}`;
+            const ref = storage.ref(path);
+            alert("Uploading...");
             await ref.put(file);
             const url = await ref.getDownloadURL();
-            await db.ref(currentTab).push({ url: url, name: file.name, storagePath: path });
-            alert("সফলভাবে আপলোড হয়েছে!");
-        } catch(e) { alert("আপলোড এরর!"); }
-    }
-
-    async function deleteItem(key, path) {
-        if(confirm("এটি ডিলিট করতে চান?")) {
-            if(path) await storage.ref(path).delete().catch(() => {});
-            await db.ref(currentTab + '/' + key).remove();
+            await db.ref(currentTab).push({ url: url, name: file.name, path: path });
+            alert("Success!");
         }
-    }
 
-    window.onload = loadData;
-</script>
+        // ৬. Delete Logic
+        async function deleteMedia(key, path) {
+            if(confirm("Delete?")) {
+                if(path) await storage.ref(path).delete().catch(()=>{});
+                await db.ref(currentTab + '/' + key).remove();
+            }
+        }
+    </script>
 </body>
 </html>
