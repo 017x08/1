@@ -21,7 +21,6 @@
             overflow-x: hidden;
         }
 
-        /* Glassmorphism Header */
         header {
             position: sticky;
             top: 0;
@@ -41,7 +40,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Compact Grid - 3 Columns like Gallery */
         .gallery {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -79,7 +77,6 @@
             color: #fff;
         }
 
-        /* Status Text */
         #status {
             text-align: center;
             padding: 8px;
@@ -88,7 +85,6 @@
             min-height: 15px;
         }
 
-        /* Premium Bottom Navigation */
         .bottom-nav {
             position: fixed;
             bottom: 25px;
@@ -120,7 +116,6 @@
             font-weight: bold;
         }
 
-        /* Upload FAB */
         .fab {
             position: fixed;
             bottom: 85px;
@@ -155,7 +150,6 @@
     <div class="nav-btn active" id="tab-all" onclick="changeTab('all')">All</div>
     <div class="nav-btn" id="tab-photo" onclick="changeTab('photo')">Photos</div>
     <div class="nav-btn" id="tab-video" onclick="changeTab('video')">Videos</div>
-    <div class="nav-btn" id="tab-file" onclick="changeTab('file')">Files</div>
 </div>
 
 <script>
@@ -177,9 +171,19 @@
                 if (!msg) return;
 
                 let entry = null;
-                if (msg.photo) entry = { type: 'photo', fileId: msg.photo[msg.photo.length - 1].file_id };
-                else if (msg.video) entry = { type: 'video', fileId: msg.video.file_id };
-                else if (msg.document) entry = { type: 'file', fileId: msg.document.file_id, name: msg.document.file_name };
+                // Document hishebe pathano chobi detect korar jonno logic
+                if (msg.photo) {
+                    entry = { type: 'photo', fileId: msg.photo[msg.photo.length - 1].file_id };
+                } else if (msg.video) {
+                    entry = { type: 'video', fileId: msg.video.file_id };
+                } else if (msg.document) {
+                    const mime = msg.document.mime_type || "";
+                    if (mime.startsWith('image/')) {
+                        entry = { type: 'photo', fileId: msg.document.file_id };
+                    } else if (mime.startsWith('video/')) {
+                        entry = { type: 'video', fileId: msg.document.file_id };
+                    }
+                }
 
                 if (entry) mediaCache.push(entry);
             });
@@ -200,17 +204,18 @@
             const card = document.createElement('div');
             card.className = 'media-item';
             
-            const fileRes = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${m.fileId}`);
-            const fileData = await fileRes.json();
-            const url = `https://api.telegram.org/file/bot${TOKEN}/${fileData.result.file_path}`;
+            try {
+                const fileRes = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${m.fileId}`);
+                const fileData = await fileRes.json();
+                const url = `https://api.telegram.org/file/bot${TOKEN}/${fileData.result.file_path}`;
 
-            if (m.type === 'photo') {
-                card.innerHTML = `<img src="${url}" onclick="window.open('${url}')">`;
-            } else if (m.type === 'video') {
-                card.innerHTML = `<video src="${url}" onclick="this.play()"></video><span class="type-tag">Video</span>`;
-            } else {
-                card.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; font-size:9px; padding:5px; text-align:center; color:#555;">📄<br>${m.name.substring(0,10)}...</div><span class="type-tag">File</span>`;
-                card.onclick = () => window.open(url);
+                if (m.type === 'photo') {
+                    card.innerHTML = `<img src="${url}" onclick="window.open('${url}')">`;
+                } else if (m.type === 'video') {
+                    card.innerHTML = `<video src="${url}" onclick="this.play()"></video><span class="type-tag">Video</span>`;
+                }
+            } catch(e) {
+                card.innerHTML = `<div style="font-size:8px; color:#333;">Load Error</div>`;
             }
             grid.appendChild(card);
         }
@@ -227,20 +232,16 @@
         const file = files[0];
         if (!file) return;
 
-        document.getElementById('status').innerText = "Uploading to Cloud...";
+        document.getElementById('status').innerText = "Uploading as Document...";
         const formData = new FormData();
         formData.append('chat_id', CHAT_ID);
         
-        let method = 'sendDocument';
-        let key = 'document';
-        if (file.type.startsWith('image/')) { method = 'sendPhoto'; key = 'photo'; }
-        else if (file.type.startsWith('video/')) { method = 'sendVideo'; key = 'video'; }
-
-        formData.append(key, file);
+        // Quality dhore rakhar jonno Document hishebe pathano
+        formData.append('document', file);
 
         try {
-            await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, { method: 'POST', body: formData });
-            document.getElementById('status').innerText = "Done! Updating...";
+            await fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`, { method: 'POST', body: formData });
+            document.getElementById('status').innerText = "Done! Syncing...";
             setTimeout(loadData, 1500); 
         } catch(e) {
             document.getElementById('status').innerText = "Error uploading";
