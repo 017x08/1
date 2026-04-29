@@ -5,116 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HRIDOY'S CLOUD GALLERY</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <!-- GramJS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/telegram/browser/telegram.js"></script>
     <style>
-        body { background: #0b0f1a; color: white; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .upload-btn { background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); transition: 0.3s; }
-        .upload-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+        body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .login-card { max-width: 400px; margin: 100px auto; padding: 2rem; border-radius: 20px; }
+        .img-card { transition: 0.3s; overflow: hidden; border-radius: 15px; background: #1e293b; }
+        .img-card:hover { transform: scale(1.02); }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4">
 
-    <div class="max-w-5xl mx-auto">
-        <div class="glass p-8 rounded-[30px] text-center mb-10">
-            <h1 class="text-3xl font-bold mb-2">HRIDOY'S <span class="text-cyan-400">CLOUD</span></h1>
-            <p class="text-gray-400 text-sm">Unlimited Sync Storage</p>
-            
-            <div class="mt-6">
-                <input type="file" id="fileInput" class="hidden" accept="image/*">
-                <label for="fileInput" id="uploadStatus" class="upload-btn px-8 py-3 rounded-2xl cursor-pointer font-bold inline-block">
-                    Upload to Cloud
-                </label>
-            </div>
-        </div>
-
-        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <!-- Photos will appear here -->
+    <!-- Login Area -->
+    <div id="loginArea" class="glass login-card">
+        <h2 class="text-2xl font-bold mb-4 text-center">Telegram Login</h2>
+        <input type="text" id="phone" placeholder="+88017XXXXXXXX" class="w-full p-3 mb-4 rounded bg-white/10 border border-white/20 outline-none">
+        <button onclick="startLogin()" id="loginBtn" class="w-full bg-cyan-500 p-3 rounded font-bold hover:bg-cyan-600 transition">Send Code</button>
+        
+        <div id="codeSection" class="hidden mt-4">
+            <input type="text" id="code" placeholder="Enter OTP Code" class="w-full p-3 mb-4 rounded bg-white/10 border border-white/20 outline-none">
+            <button onclick="submitCode()" class="w-full bg-green-500 p-3 rounded font-bold hover:bg-green-600 transition">Verify & Login</button>
         </div>
     </div>
 
+    <!-- Gallery Area -->
+    <div id="galleryArea" class="hidden max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8 glass p-6 rounded-3xl">
+            <h1 class="text-3xl font-bold">HRIDOY'S <span class="text-cyan-400">GALLERY</span></h1>
+            <button onclick="localStorage.clear(); location.reload();" class="text-red-400 text-sm">Logout</button>
+        </div>
+        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Photos will be injected here -->
+        </div>
+        <div id="loader" class="text-center mt-10 text-cyan-400 font-bold hidden">Loading images from channel...</div>
+    </div>
+
     <script>
-        // ১. আপনার Firebase কনফিগ এখানে অবশ্যই দিন
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-            projectId: "YOUR_PROJECT",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+        const { TelegramClient } = telegram;
+        const { StringSession } = telegram.sessions;
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const apiId = 35956481;
+        const apiHash = "0718456773c2c6e400717d6acd68a353";
+        const sessionKey = "hridoy_gallery_session";
+        
+        let client;
+        let stringSession = new StringSession(localStorage.getItem(sessionKey) || "");
 
-        const botToken = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
-        const chatId = '8540900103';
-
-        // ২. ডাটাবেস থেকে ছবি লোড করা (সব ডিভাইসে সিঙ্ক হবে)
-        db.ref('hridoy_gallery').on('value', (snapshot) => {
-            const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = "";
-            const data = snapshot.val();
-            if(data) {
-                Object.keys(data).reverse().forEach(key => {
-                    const item = data[key];
-                    const card = document.createElement('div');
-                    card.className = "glass p-2 rounded-2xl relative group overflow-hidden";
-                    card.innerHTML = `
-                        <img src="${item.url}" class="w-full h-48 object-cover rounded-xl">
-                        <button onclick="deleteImage('${item.msgId}', '${key}')" class="absolute top-4 right-4 bg-red-500/80 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition">
-                            ✕
-                        </button>
-                    `;
-                    grid.appendChild(card);
-                });
+        async function init() {
+            client = new TelegramClient(stringSession, apiId, apiHash, { connectionRetries: 5 });
+            
+            if (localStorage.getItem(sessionKey)) {
+                document.getElementById('loginArea').classList.add('hidden');
+                document.getElementById('galleryArea').classList.remove('hidden');
+                await client.connect();
+                fetchMessages();
             }
-        });
+        }
 
-        // ৩. আপলোড লজিক
-        document.getElementById('fileInput').onchange = async (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
+        async function startLogin() {
+            const phone = document.getElementById('phone').value;
+            await client.connect();
+            
+            window.res = await client.sendCode({ apiId, apiHash }, phone);
+            document.getElementById('codeSection').classList.remove('hidden');
+            document.getElementById('loginBtn').innerText = "Code Sent!";
+        }
 
-            document.getElementById('uploadStatus').innerText = "Uploading...";
-
-            const formData = new FormData();
-            formData.append('chat_id', chatId);
-            formData.append('photo', file);
-
+        async function submitCode() {
+            const code = document.getElementById('code').value;
+            const phone = document.getElementById('phone').value;
+            
             try {
-                const res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: formData });
-                const result = await res.json();
+                await client.signIn({
+                    phoneNumber: phone,
+                    phoneCode: code,
+                    phoneCodeHash: window.res.phoneCodeHash
+                });
+                
+                localStorage.setItem(sessionKey, client.session.save());
+                location.reload();
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
 
-                if(result.ok) {
-                    const msgId = result.result.message_id;
-                    const fileId = result.result.photo[result.result.photo.length - 1].file_id;
-
-                    const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-                    const fileData = await fileRes.json();
-                    const finalUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-
-                    // Firebase-এ সেভ করা
-                    db.ref('hridoy_gallery').push({ url: finalUrl, msgId: msgId });
-                    document.getElementById('uploadStatus').innerText = "Upload Done!";
+        async function fetchMessages() {
+            const loader = document.getElementById('loader');
+            loader.classList.remove('hidden');
+            
+            try {
+                // আপনার চ্যানেলের ইউজারনেম এখানে দিন
+                const result = await client.getMessages("HRIDOYGALL", { limit: 100 });
+                const grid = document.getElementById('galleryGrid');
+                
+                for (const msg of result) {
+                    if (msg.media && msg.media.photo) {
+                        const buffer = await client.downloadMedia(msg.media, {});
+                        const blob = new Blob([buffer], { type: 'image/jpeg' });
+                        const url = URL.createObjectURL(blob);
+                        
+                        const card = document.createElement('div');
+                        card.className = "img-card p-2";
+                        card.innerHTML = `<img src="${url}" class="w-full h-56 object-cover rounded-xl shadow-lg">`;
+                        grid.appendChild(card);
+                    }
                 }
             } catch (err) {
-                alert("Upload failed!");
+                console.error(err);
             }
-            setTimeout(() => document.getElementById('uploadStatus').innerText = "Upload to Cloud", 2000);
-        };
-
-        // ৪. ডিলিট লজিক
-        async function deleteImage(msgId, key) {
-            if(!confirm("Delete forever?")) return;
-            // টেলিগ্রাম থেকে ডিলিট
-            await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage?chat_id=${chatId}&message_id=${msgId}`);
-            // Firebase থেকে ডিলিট
-            db.ref('hridoy_gallery/' + key).remove();
+            loader.classList.add('hidden');
         }
+
+        init();
     </script>
 </body>
 </html>
