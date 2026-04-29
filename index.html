@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S SMART GALLERY</title>
+    <title>HRIDOY'S GALLERY PRO</title>
     <style>
         :root {
             --accent: #00d2ff;
@@ -27,11 +27,10 @@
 
         header h1 { font-size: 18px; margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .admin-controls { text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .admin-controls { text-align: center; padding: 20px; }
         
         .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px; }
 
-        /* কার্ডের ডিজাইন */
         .media-item { 
             aspect-ratio: 1/1; background: var(--card-bg); 
             border-radius: 8px; overflow: hidden; position: relative; 
@@ -40,30 +39,23 @@
         
         .media-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
 
-        /* থ্রি ডট বাটন */
-        .dot-menu {
-            position: absolute; top: 5px; right: 5px;
-            width: 25px; height: 25px; background: rgba(0,0,0,0.5);
-            border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; cursor: pointer; color: white;
-            z-index: 10; font-weight: bold;
+        /* বিন (Trash) আইকন ডিজাইন */
+        .delete-btn {
+            position: absolute; top: 8px; right: 8px;
+            width: 30px; height: 30px; background: rgba(255, 71, 87, 0.9);
+            border-radius: 6px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: 0.2s;
+            display: none; /* লগইন ছাড়া দেখা যাবে না */
         }
 
-        /* ড্রপডাউন মেনু */
-        .dropdown {
-            position: absolute; top: 35px; right: 5px;
-            background: #1a1c20; border: 1px solid var(--glass-border);
-            border-radius: 5px; display: none; z-index: 20;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
+        .delete-btn:active { transform: scale(0.9); }
 
-        .dropdown button {
-            background: none; border: none; color: var(--danger);
-            padding: 8px 15px; font-size: 13px; cursor: pointer; width: 100%;
-            text-align: left;
-        }
+        /* বিন লোগো (SVG) */
+        .delete-btn svg { width: 18px; height: 18px; fill: white; }
 
-        /* Viewer & Buttons */
+        /* Viewer */
         #viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; }
         #viewer img { max-width: 95%; max-height: 70%; border-radius: 5px; }
 
@@ -71,7 +63,7 @@
         .btn-upload { background: linear-gradient(45deg, #3a7bd5, #00d2ff); color: white; width: 85%; max-width: 320px; margin-bottom: 10px; }
         .btn-dl { background: var(--accent); color: #000; }
         .btn-close { background: #333; color: #fff; }
-        .btn-admin { background: transparent; color: #555; font-size: 11px; margin-top: 10px; }
+        .btn-admin { background: transparent; color: #555; font-size: 11px; margin-top: 10px; border: 1px solid #222; }
 
         #status { text-align: center; font-size: 12px; color: var(--accent); padding: 10px; }
     </style>
@@ -81,8 +73,8 @@
 <header><h1>HRIDOY'S GALLERY</h1></header>
 
 <div class="admin-controls">
-    <button id="upload_widget" class="btn btn-upload">📷 ছবি আপলোড করুন</button>
-    <button class="btn btn-admin" onclick="adminLogin()">Settings (Admin)</button>
+    <button id="upload_widget" class="btn btn-upload">📷 ছবি আপলোড করুন</button><br>
+    <button class="btn btn-admin" onclick="adminLogin()">Admin Login</button>
 </div>
 
 <div id="status">Syncing...</div>
@@ -108,10 +100,10 @@
 
     // ১. অ্যাডমিন লগইন (Pass: 1234)
     function adminLogin() {
-        const pass = prompt("পাসওয়ার্ড দিন:");
+        const pass = prompt("অ্যাডমিন পাসওয়ার্ড দিন:");
         if(pass === "1234") {
             isAdmin = true;
-            alert("অ্যাডমিন মুড অন হয়েছে! এখন থ্রি-ডট থেকে ডিলিট করতে পারবেন।");
+            alert("অ্যাডমিন মোড অন! এখন বিন আইকন দিয়ে ছবি মুছতে পারবেন।");
             loadGallery();
         } else { alert("ভুল পাসওয়ার্ড!"); }
     }
@@ -135,11 +127,10 @@
                 const card = document.createElement('div');
                 card.className = 'media-item';
                 
-                // ইমেজ এবং মেনু স্ট্রাকচার
+                // বিন আইকন এবং ইমেজ (SVG বিন লোগো ব্যবহার করা হয়েছে)
                 card.innerHTML = `
-                    <div class="dot-menu" onclick="toggleMenu(event, '${img.public_id}')">⋮</div>
-                    <div id="drop-${img.public_id}" class="dropdown">
-                        <button onclick="hideImage(event, '${img.public_id}')">Delete</button>
+                    <div class="delete-btn" style="${isAdmin ? 'display:flex' : 'display:none'}" onclick="deleteImage(event, '${img.public_id}')">
+                        <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm2 3h14v13c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9zm3 3v8h2v-8H8zm4 0v8h2v-8h-2zm4 0v8h2v-8h-2zM9 4l1-1h4l1 1h5v2H4V4h5z"/></svg>
                     </div>
                     <img src="${thumbUrl}" onclick="openViewer('${originalUrl}')">
                 `;
@@ -149,21 +140,10 @@
         } catch (e) { document.getElementById('status').innerText = "Load Error!"; }
     }
 
-    // ৩. ড্রপডাউন মেনু টগল
-    function toggleMenu(event, id) {
+    // ৩. ছবি ডিলিট করা
+    function deleteImage(event, publicId) {
         event.stopPropagation();
-        if(!isAdmin) {
-            alert("ডিলিট করার জন্য আগে নিচে Settings বাটন থেকে লগইন করুন।");
-            return;
-        }
-        const dropdown = document.getElementById(`drop-${id}`);
-        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // ৪. ছবি লুকানো (Delete)
-    function hideImage(event, publicId) {
-        event.stopPropagation();
-        if(confirm("আপনি কি নিশ্চিতভাবে এই ছবিটি মুছতে চান?")) {
+        if(confirm("আপনি কি নিশ্চিতভাবে এই ছবিটি গ্যালারি থেকে সরাতে চান?")) {
             let hiddenImages = JSON.parse(localStorage.getItem('hiddenImages') || '[]');
             hiddenImages.push(publicId);
             localStorage.setItem('hiddenImages', JSON.stringify(hiddenImages));
@@ -192,11 +172,6 @@
             a.download = `HRIDOY_IMG_${Date.now()}.jpg`;
             a.click();
         } catch (err) { alert("Download failed!"); }
-    }
-
-    // স্ক্রিনের কোথাও ক্লিক করলে মেনু বন্ধ হবে
-    window.onclick = function() {
-        document.querySelectorAll('.dropdown').forEach(d => d.style.display = 'none');
     }
 
     loadGallery();
