@@ -1,158 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S CLOUD GALLERY</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/telegram/browser/telegram.js"></script>
-    <style>
-        body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .btn-gradient { background: linear-gradient(90deg, #06b6d4, #3b82f6); transition: 0.3s; }
-        .btn-gradient:hover { opacity: 0.9; transform: translateY(-2px); }
-        input { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; }
-    </style>
-</head>
-<body class="p-4 md:p-8">
+const { TelegramClient } = telegram;
+const { StringSession } = telegram.sessions;
 
-    <!-- Login Section -->
-    <div id="loginArea" class="max-w-md mx-auto mt-20 glass p-8 rounded-[30px] shadow-2xl">
-        <h2 class="text-3xl font-bold mb-6 text-center text-cyan-400">Telegram Sync</h2>
-        <p class="text-gray-400 text-sm text-center mb-6">আপনার ফোনের টেলিগ্রাম অ্যাপে কোড যাবে।</p>
-        
-        <div class="space-y-4">
-            <input type="text" id="phone" placeholder="+88017XXXXXXXX" class="w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-500">
-            <button onclick="startLogin()" id="loginBtn" class="w-full btn-gradient p-4 rounded-2xl font-bold">Send Login Code</button>
-            
-            <div id="codeSection" class="hidden space-y-4 pt-4 border-t border-white/10">
-                <input type="text" id="code" placeholder="Enter 5-digit Code" class="w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-green-500">
-                <button onclick="submitCode()" class="w-full bg-green-500 p-4 rounded-2xl font-bold hover:bg-green-600 transition">Verify & Access Gallery</button>
-            </div>
-        </div>
-    </div>
+const apiId = 35956481;
+const apiHash = "0718456773c2c6e400717d6acd68a353";
+const sessionKey = "hridoy_cloud_session";
 
-    <!-- Main Gallery Section -->
-    <div id="galleryArea" class="hidden max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-10 glass p-6 rounded-[30px]">
-            <div>
-                <h1 class="text-3xl font-bold">HRIDOY'S <span class="text-cyan-400">CLOUD</span></h1>
-                <p class="text-xs text-gray-400">Connected as User</p>
-            </div>
-            <button onclick="logout()" class="bg-red-500/20 text-red-400 px-5 py-2 rounded-xl border border-red-500/30 hover:bg-red-500/30 transition">Logout</button>
-        </header>
+// সরাসরি ক্লায়েন্ট অবজেক্ট তৈরি করে রাখা যাতে initialization এরর না আসে
+const stringSession = new StringSession(localStorage.getItem(sessionKey) || "");
+const client = new TelegramClient(stringSession, apiId, apiHash, { 
+    connectionRetries: 5,
+    useWSS: true 
+});
 
-        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <!-- Photos will appear here -->
-        </div>
-        
-        <div id="loader" class="text-center mt-20 hidden">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-cyan-400 mb-4"></div>
-            <p class="text-cyan-400 font-medium">Fetching photos from @HRIDOYGALL...</p>
-        </div>
-    </div>
-
-    <script>
-        const { TelegramClient } = telegram;
-        const { StringSession } = telegram.sessions;
-
-        const apiId = 35956481;
-        const apiHash = "0718456773c2c6e400717d6acd68a353";
-        const sessionKey = "hridoy_cloud_session";
-        
-        let client;
-        let stringSession = new StringSession(localStorage.getItem(sessionKey) || "");
-
-        // অ্যাপ শুরু করা
-        async function init() {
-            client = new TelegramClient(stringSession, apiId, apiHash, { 
-                connectionRetries: 5,
-                useWSS: true // সিকিউর কানেকশন
-            });
-            
-            if (localStorage.getItem(sessionKey)) {
-                showGallery();
-            }
+async function init() {
+    try {
+        // পেজ লোড হওয়ার পর কানেক্ট করার চেষ্টা করা
+        if (localStorage.getItem(sessionKey)) {
+            await client.connect();
+            showGallery();
         }
+    } catch (err) {
+        console.error("Initialization error:", err);
+    }
+}
 
-        async function startLogin() {
-            const phone = document.getElementById('phone').value.trim();
-            if(!phone) return alert("নম্বর দিন!");
+async function startLogin() {
+    const phone = document.getElementById('phone').value.trim();
+    if(!phone) return alert("দয়া করে নম্বর দিন!");
 
-            try {
-                await client.connect();
-                window.res = await client.sendCode({ apiId, apiHash }, phone);
-                document.getElementById('codeSection').classList.remove('hidden');
-                document.getElementById('loginBtn').innerText = "Code Sent to Telegram";
-                document.getElementById('loginBtn').disabled = true;
-            } catch (err) {
-                alert("Error: " + err.message);
-            }
-        }
+    try {
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.innerText = "Connecting...";
+        
+        await client.connect(); // লগইন শুরু করার আগে কানেক্ট নিশ্চিত করা
+        
+        window.res = await client.sendCode({ apiId, apiHash }, phone);
+        
+        document.getElementById('codeSection').classList.remove('hidden');
+        loginBtn.innerText = "Code Sent to Telegram";
+        loginBtn.disabled = true;
+    } catch (err) {
+        alert("Error: " + err.message);
+        document.getElementById('loginBtn').innerText = "Send Login Code";
+    }
+}
 
-        async function submitCode() {
-            const code = document.getElementById('code').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            
-            try {
-                await client.signIn({
-                    phoneNumber: phone,
-                    phoneCode: code,
-                    phoneCodeHash: window.res.phoneCodeHash
-                });
+async function submitCode() {
+    const code = document.getElementById('code').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    
+    try {
+        await client.signIn({
+            phoneNumber: phone,
+            phoneCode: code,
+            phoneCodeHash: window.res.phoneCodeHash
+        });
+        
+        localStorage.setItem(sessionKey, client.session.save());
+        showGallery();
+    } catch (e) {
+        alert("ভুল কোড! আবার চেষ্টা করুন।");
+    }
+}
+
+function showGallery() {
+    document.getElementById('loginArea').classList.add('hidden');
+    document.getElementById('galleryArea').classList.remove('hidden');
+    fetchPhotos();
+}
+
+async function fetchPhotos() {
+    const loader = document.getElementById('loader');
+    const grid = document.getElementById('galleryGrid');
+    loader.classList.remove('hidden');
+    grid.innerHTML = ""; // আগের ফটোগুলো ক্লিয়ার করা
+    
+    try {
+        // মেমোরি সেভ করতে লিমিট ৫০ রাখা হয়েছে
+        const result = await client.getMessages("HRIDOYGALL", { limit: 50 });
+        
+        for (const msg of result) {
+            if (msg.media && msg.media.photo) {
+                const buffer = await client.downloadMedia(msg.media, {});
+                const blob = new Blob([buffer], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
                 
-                localStorage.setItem(sessionKey, client.session.save());
-                showGallery();
-            } catch (e) {
-                alert("Invalid Code! " + e.message);
+                const card = document.createElement('div');
+                card.className = "glass p-2 rounded-2xl group overflow-hidden relative shadow-lg";
+                card.innerHTML = `
+                    <img src="${url}" class="w-full h-56 object-cover rounded-xl transition duration-500 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-4">
+                         <a href="${url}" download="hridoy_photo.jpg" class="bg-cyan-500 text-white px-4 py-2 rounded-xl font-bold text-xs">Download</a>
+                    </div>
+                `;
+                grid.appendChild(card);
             }
         }
+    } catch (err) {
+        console.error("Fetch Error:", err);
+    }
+    loader.classList.add('hidden');
+}
 
-        function showGallery() {
-            document.getElementById('loginArea').classList.add('hidden');
-            document.getElementById('galleryArea').classList.remove('hidden');
-            fetchPhotos();
-        }
+function logout() {
+    localStorage.clear();
+    location.reload();
+}
 
-        async function fetchPhotos() {
-            const loader = document.getElementById('loader');
-            const grid = document.getElementById('galleryGrid');
-            loader.classList.remove('hidden');
-            
-            try {
-                await client.connect();
-                const result = await client.getMessages("HRIDOYGALL", { limit: 50 });
-                
-                for (const msg of result) {
-                    if (msg.media && msg.media.photo) {
-                        // সরাসরি মিডিয়া ডাউনলোড করে URL তৈরি করা
-                        const buffer = await client.downloadMedia(msg.media, {});
-                        const blob = new Blob([buffer], { type: 'image/jpeg' });
-                        const url = URL.createObjectURL(blob);
-                        
-                        const card = document.createElement('div');
-                        card.className = "glass p-2 rounded-2xl group overflow-hidden relative shadow-lg";
-                        card.innerHTML = `
-                            <img src="${url}" class="w-full h-56 object-cover rounded-xl transition duration-500 group-hover:scale-110">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                <a href="${url}" download="photo.jpg" class="bg-white text-black px-4 py-2 rounded-lg font-bold text-sm">Download</a>
-                            </div>
-                        `;
-                        grid.appendChild(card);
-                    }
-                }
-            } catch (err) {
-                console.error("Fetch Error:", err);
-            }
-            loader.classList.add('hidden');
-        }
-
-        function logout() {
-            localStorage.clear();
-            location.reload();
-        }
-
-        init();
-    </script>
-</body>
-</html>
+// ফাংশনটি রান করা
+init();
