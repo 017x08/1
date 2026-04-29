@@ -1,124 +1,120 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S GALLERY - Cloud</title>
+    <title>HRIDOY'S CLOUD GALLERY</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        body {
-            background: #0f172a;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            transition: 0.3s ease;
-        }
-        .glass-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        .header-bg {
-            background: linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(58, 123, 213, 0.1));
-        }
+        body { background: #0b0f1a; color: white; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .upload-btn { background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); transition: 0.3s; }
+        .upload-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-6">
 
-    <div class="max-w-6xl mx-auto">
-        <!-- Header Section -->
-        <div class="header-bg p-10 rounded-[40px] border border-white/10 text-center mb-10">
-            <h1 class="text-4xl font-bold tracking-tight mb-2">HRIDOY'S <span class="text-cyan-400">GALLERY</span></h1>
-            <p class="text-gray-400">Live Syncing from @HRIDOYGALL</p>
+    <div class="max-w-5xl mx-auto">
+        <div class="glass p-8 rounded-[30px] text-center mb-10">
+            <h1 class="text-3xl font-bold mb-2">HRIDOY'S <span class="text-cyan-400">CLOUD</span></h1>
+            <p class="text-gray-400 text-sm">Unlimited Sync Storage</p>
             
-            <div class="mt-8 flex justify-center gap-4">
-                <a href="https://t.me/HRIDOYGALL" target="_blank" class="bg-cyan-500/20 text-cyan-400 px-6 py-2 rounded-full border border-cyan-500/30 hover:bg-cyan-500/30 transition">
-                    Open Channel
-                </a>
-                <button onclick="fetchGallery()" class="bg-white/10 px-6 py-2 rounded-full border border-white/20 hover:bg-white/20 transition">
-                    🔄 Refresh
-                </button>
+            <div class="mt-6">
+                <input type="file" id="fileInput" class="hidden" accept="image/*">
+                <label for="fileInput" id="uploadStatus" class="upload-btn px-8 py-3 rounded-2xl cursor-pointer font-bold inline-block">
+                    Upload to Cloud
+                </label>
             </div>
         </div>
 
-        <!-- Gallery Grid -->
-        <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Images will load here -->
-            <div id="loader" class="col-span-full text-center py-10 text-gray-500">
-                Loading photos from channel...
-            </div>
+        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <!-- Photos will appear here -->
         </div>
     </div>
 
     <script>
-        const channelName = 'HRIDOYGALL';
-        const galleryGrid = document.getElementById('galleryGrid');
-        const loader = document.getElementById('loader');
+        // ১. আপনার Firebase কনফিগ এখানে অবশ্যই দিন
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-        async function fetchGallery() {
-            try {
-                // টেলিগ্রামের পাবলিক ওয়েব ভিউ থেকে ডাটা ফেচ করা
-                // নোট: সরাসরি ফেচ করলে CORS ইস্যু হতে পারে, তাই একটি প্রক্সি ব্যবহার করা হচ্ছে
-                const proxyUrl = 'https://api.allorigins.win/get?url=';
-                const targetUrl = encodeURIComponent(`https://t.me/s/${channelName}`);
-                
-                const response = await fetch(proxyUrl + targetUrl);
-                const data = await response.json();
-                const html = data.contents;
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // টেলিগ্রামের ছবির কন্টেইনার খুঁজে বের করা
-                const messages = doc.querySelectorAll('.tgme_widget_message_photo_wrap');
-                
-                if (messages.length === 0) {
-                    loader.innerHTML = "No photos found in the channel.";
-                    return;
-                }
+        const botToken = '8782276212:AAGRKZdMcmwhydJVVO-uN78bXZMEcV4zlno';
+        const chatId = '8540900103';
 
-                loader.remove();
-                galleryGrid.innerHTML = ""; // আগের ডাটা ক্লিয়ার
-
-                messages.forEach(msg => {
-                    // স্টাইল এট্রিবিউট থেকে ছবির ব্যাকগ্রাউন্ড URL বের করা
-                    const style = msg.getAttribute('style');
-                    const urlMatch = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-                    
-                    if (urlMatch) {
-                        const imageUrl = urlMatch[1];
-                        createCard(imageUrl);
-                    }
-                });
-
-            } catch (error) {
-                console.error("Error:", error);
-                loader.innerHTML = "Failed to load gallery. Please check your internet.";
-            }
-        }
-
-        function createCard(url) {
-            const card = document.createElement('div');
-            card.className = 'glass-card p-3 overflow-hidden group';
-            card.innerHTML = `
-                <div class="relative overflow-hidden rounded-2xl">
-                    <img src="${url}" class="w-full h-64 object-cover transition duration-500 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                        <button onclick="window.open('${url}', '_blank')" class="bg-white/20 backdrop-blur-md text-white w-full py-2 rounded-xl border border-white/30 text-sm font-semibold">
-                            View Full Image
+        // ২. ডাটাবেস থেকে ছবি লোড করা (সব ডিভাইসে সিঙ্ক হবে)
+        db.ref('hridoy_gallery').on('value', (snapshot) => {
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = "";
+            const data = snapshot.val();
+            if(data) {
+                Object.keys(data).reverse().forEach(key => {
+                    const item = data[key];
+                    const card = document.createElement('div');
+                    card.className = "glass p-2 rounded-2xl relative group overflow-hidden";
+                    card.innerHTML = `
+                        <img src="${item.url}" class="w-full h-48 object-cover rounded-xl">
+                        <button onclick="deleteImage('${item.msgId}', '${key}')" class="absolute top-4 right-4 bg-red-500/80 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                            ✕
                         </button>
-                    </div>
-                </div>
-            `;
-            galleryGrid.appendChild(card);
-        }
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        });
 
-        // পেজ লোড হলে ফাংশনটি চালু করা
-        fetchGallery();
+        // ৩. আপলোড লজিক
+        document.getElementById('fileInput').onchange = async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            document.getElementById('uploadStatus').innerText = "Uploading...";
+
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('photo', file);
+
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: formData });
+                const result = await res.json();
+
+                if(result.ok) {
+                    const msgId = result.result.message_id;
+                    const fileId = result.result.photo[result.result.photo.length - 1].file_id;
+
+                    const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+                    const fileData = await fileRes.json();
+                    const finalUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+
+                    // Firebase-এ সেভ করা
+                    db.ref('hridoy_gallery').push({ url: finalUrl, msgId: msgId });
+                    document.getElementById('uploadStatus').innerText = "Upload Done!";
+                }
+            } catch (err) {
+                alert("Upload failed!");
+            }
+            setTimeout(() => document.getElementById('uploadStatus').innerText = "Upload to Cloud", 2000);
+        };
+
+        // ৪. ডিলিট লজিক
+        async function deleteImage(msgId, key) {
+            if(!confirm("Delete forever?")) return;
+            // টেলিগ্রাম থেকে ডিলিট
+            await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage?chat_id=${chatId}&message_id=${msgId}`);
+            // Firebase থেকে ডিলিট
+            db.ref('hridoy_gallery/' + key).remove();
+        }
     </script>
 </body>
 </html>
