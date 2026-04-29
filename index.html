@@ -1,210 +1,38 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S AUTO GALLERY</title>
-    <style>
-        :root {
-            --accent: #00d2ff;
-            --bg: #05070a;
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        body { 
-            background: var(--bg); 
-            color: #e0e0e0; 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            padding-bottom: 50px; 
-            user-select: none; 
-            overflow-x: hidden; 
-        }
-        
-        header { 
-            position: sticky; 
-            top: 0; 
-            background: rgba(10, 15, 25, 0.8); 
-            backdrop-filter: blur(15px); 
-            padding: 18px; 
-            text-align: center; 
-            border-bottom: 1px solid var(--glass-border); 
-            z-index: 1000; 
-        }
-
-        header h1 { 
-            font-size: 20px; 
-            margin: 0; 
-            font-weight: 800; 
-            letter-spacing: 1.5px; 
-            background: linear-gradient(to right, #00d2ff, #3a7bd5, #00d2ff); 
-            background-size: 200% auto; 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            animation: shine 3s linear infinite; 
-        }
-        
-        @keyframes shine { to { background-position: 200% center; } }
-
-        .gallery { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 4px; 
-            padding: 4px; 
-        }
-
-        .media-item { 
-            aspect-ratio: 1/1; 
-            background: var(--card-bg); 
-            border-radius: 4px; 
-            overflow: hidden; 
-            position: relative; 
-            border: 0.5px solid var(--glass-border); 
-            transition: 0.2s; 
-            cursor: pointer; 
-        }
-
-        .media-item img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            pointer-events: none; 
-        }
-
-        /* Viewer */
-        #viewer { 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.95); 
-            display: none; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 3000; 
-        }
-
-        #viewer-content { 
-            width: 100%; 
-            height: 70%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
-
-        #viewer img { 
-            max-width: 95%; 
-            max-height: 100%; 
-            border-radius: 8px; 
-            box-shadow: 0 0 20px rgba(0,210,255,0.2);
-        }
-
-        .viewer-tools { margin-top: 30px; display: flex; gap: 15px; }
-        
-        .btn { 
-            padding: 12px 25px; 
-            border-radius: 25px; 
-            border: none; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s;
-        }
-
-        .btn-dl { background: var(--accent); color: #000; }
-        .btn-close { background: #333; color: #fff; }
-
-        #status { 
-            text-align: center; 
-            font-size: 11px; 
-            color: var(--accent); 
-            padding: 15px; 
-        }
-    </style>
-</head>
-<body>
-
-<header><h1>HRIDOY'S GALLERY</h1></header>
-<div id="status">Syncing with Cloudinary...</div>
-<div class="gallery" id="galleryGrid"></div>
-
-<!-- Image Viewer -->
-<div id="viewer">
-    <div id="viewer-content"></div>
-    <div class="viewer-tools">
-        <button class="btn btn-close" onclick="closeViewer()">বন্ধ করুন</button>
-        <button class="btn btn-dl" id="dl-btn" onclick="downloadImage()">ডাউনলোড</button>
-    </div>
-</div>
-
-<script>
-    // আপনার ক্লাউডিনারি তথ্য
-    const CLOUD_NAME = 'dkkeyaglx'; 
-    const TAG_NAME = 'my_gallery'; 
-    let currentImageUrl = ''; // বর্তমান ইমেজের ইউআরএল রাখার জন্য
-
-    // ডেটা লোড করার ফাংশন
-    async function loadData() {
+async function loadData() {
         try {
-            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json`);
-            
-            if (!res.ok) {
-                document.getElementById('status').innerText = "সেটিংস এরর: Resource List নট এলাউড!";
-                return;
-            }
-
+            // নতুন ছবিগুলো সাথে সাথে পাওয়ার জন্য টাইমস্ট্যাম্প যোগ করা হয়েছে
+            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json?v=${new Date().getTime()}`);
             const data = await res.json();
-            
-            if (data.resources.length === 0) {
-                document.getElementById('status').innerText = "কোনো ছবি পাওয়া যায়নি! ট্যাগ চেক করুন।";
-                return;
-            }
-
             const grid = document.getElementById('galleryGrid');
             grid.innerHTML = '';
             
             data.resources.forEach(img => {
-                const publicId = img.public_id;
-                const format = img.format;
+                // গ্যালারিতে দেখানোর জন্য থাম্বনেইল (একটু লো কোয়ালিটি যাতে দ্রুত খোলে)
+                const thumbUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_500,c_fill,q_auto/${img.public_id}.${img.format}`;
                 
-                const thumbUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_400,c_fill,f_auto,q_auto/${publicId}.${format}`;
-                const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto/${publicId}.${format}`;
+                // ডাউনলোডের জন্য একদম অরিজিনাল ইউআরএল (কোনো প্যারামিটার নেই, মানে ১০০% রিয়াল কোয়ালিটি)
+                const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${img.public_id}.${img.format}`;
 
                 const card = document.createElement('div');
                 card.className = 'media-item';
                 card.innerHTML = `<img src="${thumbUrl}" alt="Gallery Image">`;
                 
+                // ক্লিক করলে অরিজিনাল হাই-কোয়ালিটি ছবি ওপেন হবে
                 card.onclick = () => openViewer(fullUrl);
                 grid.appendChild(card);
             });
-
             document.getElementById('status').innerText = "";
         } catch (e) { 
-            document.getElementById('status').innerText = "নেটওয়ার্ক এরর!"; 
+            document.getElementById('status').innerText = "Load Error!"; 
         }
     }
 
-    // ভিউয়ার ওপেন করা
-    function openViewer(url) {
-        currentImageUrl = url; // ডাউনলোড করার জন্য ইউআরএল সেভ করা
-        const content = document.getElementById('viewer-content');
-        content.innerHTML = `<img src="${url}">`;
-        document.getElementById('viewer').style.display = 'flex';
-    }
-
-    // ভিউয়ার বন্ধ করা
-    function closeViewer() { 
-        document.getElementById('viewer').style.display = 'none'; 
-        document.getElementById('viewer-content').innerHTML = ''; 
-        currentImageUrl = '';
-    }
-
-    // সরাসরি ডাউনলোড করার ফাংশন (Blob Method)
+    // ডাউনলোড ফাংশন (যা একদম রিয়াল ফাইলটি নামিয়ে দেবে)
     async function downloadImage() {
         if (!currentImageUrl) return;
-        
         const btn = document.getElementById('dl-btn');
         const originalText = btn.innerText;
-        btn.innerText = "লোডিং...";
+        btn.innerText = "Downloading...";
         btn.disabled = true;
 
         try {
@@ -214,22 +42,17 @@
             
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = `HRIDOY_IMG_${Date.now()}.jpg`;
+            // অরিজিনাল ফরম্যাট বজায় রাখা
+            a.download = `HRIDOY_ORIGINAL_${Date.now()}.jpg`;
             document.body.appendChild(a);
             a.click();
             
             window.URL.revokeObjectURL(blobUrl);
             document.body.removeChild(a);
         } catch (error) {
-            alert("ডাউনলোড ব্যর্থ হয়েছে। ছবির ওপর চেপে ধরে সেভ করুন।");
+            alert("High-quality download failed. Please long press the image to save.");
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
         }
     }
-
-    // রান অ্যাপ
-    loadData();
-</script>
-</body>
-</html>
