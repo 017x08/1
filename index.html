@@ -127,22 +127,24 @@
 <div id="status">Syncing with Cloudinary...</div>
 <div class="gallery" id="galleryGrid"></div>
 
+<!-- Image Viewer -->
 <div id="viewer">
     <div id="viewer-content"></div>
     <div class="viewer-tools">
         <button class="btn btn-close" onclick="closeViewer()">বন্ধ করুন</button>
-        <a id="dl-link" download><button class="btn btn-dl">ডাউনলোড</button></a>
+        <button class="btn btn-dl" id="dl-btn" onclick="downloadImage()">ডাউনলোড</button>
     </div>
 </div>
 
 <script>
-    // তোমার দেওয়া তথ্য অনুযায়ী সেটআপ
+    // আপনার ক্লাউডিনারি তথ্য
     const CLOUD_NAME = 'dkkeyaglx'; 
     const TAG_NAME = 'my_gallery'; 
+    let currentImageUrl = ''; // বর্তমান ইমেজের ইউআরএল রাখার জন্য
 
+    // ডেটা লোড করার ফাংশন
     async function loadData() {
         try {
-            // ক্লাউডিনারির লিস্ট সার্ভিস থেকে ডেটা আনা
             const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json`);
             
             if (!res.ok) {
@@ -160,19 +162,16 @@
             const grid = document.getElementById('galleryGrid');
             grid.innerHTML = '';
             
-            // নতুন ছবি আগে দেখানোর জন্য সর্টিং
             data.resources.forEach(img => {
                 const publicId = img.public_id;
                 const format = img.format;
                 
-                // থাম্বনেইল ইউআরএল (w_400 দিয়ে ছবি ছোট করা হয়েছে যাতে দ্রুত লোড হয়)
                 const thumbUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_400,c_fill,f_auto,q_auto/${publicId}.${format}`;
-                // ফুল ইউআরএল ডাউনলোডের জন্য
                 const fullUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto/${publicId}.${format}`;
 
                 const card = document.createElement('div');
                 card.className = 'media-item';
-                card.innerHTML = `<img src="${thumbUrl}" alt="Gallery">`;
+                card.innerHTML = `<img src="${thumbUrl}" alt="Gallery Image">`;
                 
                 card.onclick = () => openViewer(fullUrl);
                 grid.appendChild(card);
@@ -181,23 +180,55 @@
             document.getElementById('status').innerText = "";
         } catch (e) { 
             document.getElementById('status').innerText = "নেটওয়ার্ক এরর!"; 
-            console.error(e);
         }
     }
 
+    // ভিউয়ার ওপেন করা
     function openViewer(url) {
+        currentImageUrl = url; // ডাউনলোড করার জন্য ইউআরএল সেভ করা
         const content = document.getElementById('viewer-content');
         content.innerHTML = `<img src="${url}">`;
-        document.getElementById('dl-link').href = url;
         document.getElementById('viewer').style.display = 'flex';
     }
 
+    // ভিউয়ার বন্ধ করা
     function closeViewer() { 
         document.getElementById('viewer').style.display = 'none'; 
         document.getElementById('viewer-content').innerHTML = ''; 
+        currentImageUrl = '';
     }
 
-    // অ্যাপ স্টার্ট
+    // সরাসরি ডাউনলোড করার ফাংশন (Blob Method)
+    async function downloadImage() {
+        if (!currentImageUrl) return;
+        
+        const btn = document.getElementById('dl-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "লোডিং...";
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(currentImageUrl);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `HRIDOY_IMG_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            alert("ডাউনলোড ব্যর্থ হয়েছে। ছবির ওপর চেপে ধরে সেভ করুন।");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // রান অ্যাপ
     loadData();
 </script>
 </body>
