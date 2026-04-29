@@ -3,83 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S PRO GALLERY</title>
+    <title>HRIDOY'S ADMIN GALLERY</title>
     <style>
         :root {
             --accent: #00d2ff;
             --bg: #05070a;
             --card-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --danger: #ff4757;
         }
 
-        body { 
-            background: var(--bg); 
-            color: #e0e0e0; 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            padding-bottom: 50px; 
-            user-select: none; 
-        }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 50px; }
         
         header { 
-            position: sticky; top: 0; 
-            background: rgba(10, 15, 25, 0.8); 
-            backdrop-filter: blur(15px); 
-            padding: 15px; text-align: center; 
-            border-bottom: 1px solid var(--glass-border); 
-            z-index: 1000; 
+            position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); 
+            backdrop-filter: blur(15px); padding: 15px; text-align: center; 
+            border-bottom: 1px solid var(--glass-border); z-index: 1000; 
         }
 
-        header h1 { 
-            font-size: 18px; margin: 0; 
-            background: linear-gradient(to right, #00d2ff, #3a7bd5, #00d2ff); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            letter-spacing: 1px;
-        }
+        header h1 { font-size: 18px; margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .upload-section { text-align: center; padding: 20px; }
+        .admin-controls { text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         
-        .gallery { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 5px; padding: 5px; 
-        }
+        .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 5px; }
 
-        .media-item { 
-            aspect-ratio: 1/1; 
-            background: var(--card-bg); 
-            border-radius: 6px; 
-            overflow: hidden; 
-            border: 0.5px solid var(--glass-border); 
-            cursor: pointer; 
-            transition: transform 0.2s;
-        }
-
-        .media-item:active { transform: scale(0.95); }
+        .media-item { aspect-ratio: 1/1; background: var(--card-bg); border-radius: 6px; overflow: hidden; border: 0.5px solid var(--glass-border); cursor: pointer; }
         .media-item img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Viewer Overlay */
-        #viewer { 
-            position: fixed; inset: 0; 
-            background: rgba(0,0,0,0.98); 
-            display: none; flex-direction: column; 
-            align-items: center; justify-content: center; 
-            z-index: 3000; 
-        }
+        #viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; }
+        #viewer img { max-width: 95%; max-height: 70%; border-radius: 5px; }
 
-        #viewer-content { width: 100%; height: 75%; display: flex; align-items: center; justify-content: center; }
-        #viewer img { max-width: 95%; max-height: 100%; border-radius: 5px; }
-
-        .btn { 
-            padding: 12px 25px; border-radius: 30px; 
-            border: none; font-weight: bold; cursor: pointer; 
-            margin: 5px; transition: 0.3s;
-        }
-
-        .btn-upload { background: linear-gradient(45deg, #3a7bd5, #00d2ff); color: white; font-size: 16px; width: 85%; max-width: 320px; }
+        .btn { padding: 12px 20px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-upload { background: linear-gradient(45deg, #3a7bd5, #00d2ff); color: white; width: 85%; max-width: 320px; }
         .btn-dl { background: var(--accent); color: #000; }
+        .btn-delete { background: var(--danger); color: white; display: none; } /* ডিফল্টভাবে ডিলিট বাটন লুকানো */
         .btn-close { background: #333; color: #fff; }
+        .btn-admin { background: transparent; border: 1px solid var(--glass-border); color: #888; font-size: 10px; margin-top: 20px; }
 
         #status { text-align: center; font-size: 12px; color: var(--accent); padding: 10px; }
     </style>
@@ -88,126 +47,122 @@
 
 <header><h1>HRIDOY'S GALLERY</h1></header>
 
-<!-- সরাসরি ওয়েবসাইট থেকে আপলোড বাটন -->
-<div class="upload-section">
+<div class="admin-controls">
     <button id="upload_widget" class="btn btn-upload">📷 ছবি আপলোড করুন</button>
+    <button class="btn btn-admin" onclick="adminLogin()">Admin Login</button>
 </div>
 
-<div id="status">Syncing Images...</div>
+<div id="status">Syncing...</div>
 <div class="gallery" id="galleryGrid"></div>
 
-<!-- ফুল স্ক্রিন ভিউয়ার -->
 <div id="viewer">
     <div id="viewer-content"></div>
-    <div style="margin-top:25px; display: flex; gap: 10px;">
+    <div style="margin-top:25px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
         <button class="btn btn-close" onclick="closeViewer()">বন্ধ করুন</button>
-        <button class="btn btn-dl" id="dl-btn" onclick="downloadOriginal()">ডাউনলোড (Original)</button>
+        <button class="btn btn-dl" id="dl-btn" onclick="downloadOriginal()">ডাউনলোড</button>
+        <button class="btn btn-delete" id="del-btn" onclick="hideImage()">মুছুন (Admin Only)</button>
     </div>
 </div>
 
-<!-- Cloudinary Widget Script -->
 <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
 
 <script>
-    // আপনার কনফিগারেশন
     const CLOUD_NAME = 'dkkeyaglx'; 
     const TAG_NAME = 'my_gallery'; 
-    const UPLOAD_PRESET = 'my_preset'; // এটি অবশ্যই 'Unsigned' হতে হবে
+    const UPLOAD_PRESET = 'my_preset'; 
     let currentImageUrl = '';
+    let currentPublicId = ''; // ডিলিট করার জন্য আইডি লাগবে
+    let isAdmin = false;
 
-    // ১. ক্লাউডিনারি আপলোড উইজেট
+    // ১. অ্যাডমিন লগইন (পাসওয়ার্ড: 1234)
+    function adminLogin() {
+        const pass = prompt("অ্যাডমিন পাসওয়ার্ড দিন:");
+        if(pass === "1234") { // আপনি এখানে আপনার পাসওয়ার্ড সেট করতে পারেন
+            isAdmin = true;
+            alert("আপনি এখন অ্যাডমিন মুডে আছেন!");
+            document.getElementById('del-btn').style.display = 'block';
+        } else {
+            alert("ভুল পাসওয়ার্ড!");
+        }
+    }
+
+    // ২. আপলোড উইজেট
     var myWidget = cloudinary.createUploadWidget({
         cloudName: CLOUD_NAME, 
         uploadPreset: UPLOAD_PRESET,
-        tags: [TAG_NAME], 
-        clientAllowedFormats: ["png", "jpg", "jpeg", "webp"], // নির্দিষ্ট ফরম্যাট
-        maxFileSize: 10000000, // সর্বোচ্চ ১০ এমবি
-        sources: ['local', 'camera', 'url'],
-        theme: 'dark'
+        tags: [TAG_NAME]
     }, (error, result) => { 
-        if (!error && result && result.event === "success") { 
-            console.log('Upload Success');
-            loadGallery(); // আপলোড হলে গ্যালারি রিফ্রেশ হবে
-        }
+        if (!error && result && result.event === "success") { loadGallery(); }
     });
 
-    document.getElementById("upload_widget").addEventListener("click", function(){
-        myWidget.open();
-    }, false);
+    document.getElementById("upload_widget").addEventListener("click", () => myWidget.open(), false);
 
-    // ২. গ্যালারি লোড করার ফাংশন (Original Quality নিশ্চিত করে)
+    // ৩. গ্যালারি লোড
     async function loadGallery() {
         try {
-            // ক্যাশ এড়াতে টাইমস্ট্যাম্প ব্যবহার
-            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json?cb=${new Date().getTime()}`);
-            if (!res.ok) throw new Error("Resource List Error");
-            
+            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/${TAG_NAME}.json?cb=${Date.now()}`);
             const data = await res.json();
             const grid = document.getElementById('galleryGrid');
             grid.innerHTML = '';
             
+            // লোকাল স্টোরেজ থেকে ডিলিট করা ছবির লিস্ট চেক করা
+            const hiddenImages = JSON.parse(localStorage.getItem('hiddenImages') || '[]');
+
             data.resources.forEach(img => {
-                // থাম্বনেইল: দ্রুত লোডের জন্য একটু ছোট করা হয়েছে (w_600)
+                if (hiddenImages.includes(img.public_id)) return; // লুকানো ছবি দেখাবে না
+
                 const thumbUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_600,c_fill,q_auto/${img.public_id}.${img.format}`;
-                
-                // অরিজিনাল ইউআরএল: কোনোরকম কমপ্রেশন নেই (No Parameters = Original Quality)
                 const originalUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${img.public_id}.${img.format}`;
 
                 const card = document.createElement('div');
                 card.className = 'media-item';
-                card.innerHTML = `<img src="${thumbUrl}" alt="Gallery">`;
-                card.onclick = () => openViewer(originalUrl);
+                card.innerHTML = `<img src="${thumbUrl}">`;
+                card.onclick = () => openViewer(originalUrl, img.public_id);
                 grid.appendChild(card);
             });
             document.getElementById('status').innerText = "";
-        } catch (e) { 
-            document.getElementById('status').innerText = "সেটিংস চেক করুন (Resource List)"; 
+        } catch (e) { document.getElementById('status').innerText = "Load Error!"; }
+    }
+
+    function openViewer(url, publicId) {
+        currentImageUrl = url;
+        currentPublicId = publicId;
+        document.getElementById('viewer-content').innerHTML = `<img src="${url}">`;
+        document.getElementById('viewer').style.display = 'flex';
+        // যদি আগে থেকেই লগইন থাকে তবে ডিলিট বাটন দেখাবে
+        if(isAdmin) document.getElementById('del-btn').style.display = 'block';
+    }
+
+    function closeViewer() { document.getElementById('viewer').style.display = 'none'; }
+
+    // ৪. ছবি লুকানো (ডিলিট সিমুলেশন)
+    function hideImage() {
+        if(!isAdmin) return;
+        if(confirm("আপনি কি নিশ্চিতভাবে এই ছবিটি ওয়েবসাইট থেকে সরাতে চান?")) {
+            let hiddenImages = JSON.parse(localStorage.getItem('hiddenImages') || '[]');
+            hiddenImages.push(currentPublicId);
+            localStorage.setItem('hiddenImages', JSON.stringify(hiddenImages));
+            alert("ছবিটি ওয়েবসাইট থেকে লুকানো হয়েছে।");
+            closeViewer();
+            loadGallery();
         }
     }
 
-    // ৩. ভিউয়ার এবং ডাউনলোড লজিক
-    function openViewer(url) {
-        currentImageUrl = url;
-        const content = document.getElementById('viewer-content');
-        content.innerHTML = `<img src="${url}" alt="Full Size Image">`;
-        document.getElementById('viewer').style.display = 'flex';
-    }
-
-    function closeViewer() { 
-        document.getElementById('viewer').style.display = 'none'; 
-        document.getElementById('viewer-content').innerHTML = '';
-    }
-
-    // ছবি ডাউনলোড করার মাস্টার ফাংশন (Original File)
     async function downloadOriginal() {
         if (!currentImageUrl) return;
         const btn = document.getElementById('dl-btn');
-        const oldText = btn.innerText;
-        btn.innerText = "প্রসেসিং...";
-        btn.disabled = true;
-
+        btn.innerText = "Downloading...";
         try {
             const response = await fetch(currentImageUrl);
             const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = `HRIDOY_IMG_${Date.now()}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            
-            window.URL.revokeObjectURL(blobUrl);
-            document.body.removeChild(link);
-        } catch (err) {
-            alert("সরাসরি সেভ করা যাচ্ছে না। ছবির ওপর চেপে ধরে সেভ করুন।");
-        } finally {
-            btn.innerText = oldText;
-            btn.disabled = false;
-        }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `HRIDOY_IMG_${Date.now()}.jpg`;
+            a.click();
+        } catch (err) { alert("Download failed!"); }
+        btn.innerText = "ডাউনলোড";
     }
 
-    // ইনিশিয়াল লোড
     loadGallery();
 </script>
 </body>
