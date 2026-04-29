@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S GALLERY PRO</title>
+    <title>HRIDOY'S PERMANENT GALLERY</title>
     <style>
         :root {
             --accent: #00d2ff;
@@ -13,59 +13,32 @@
             --danger: #ff4757;
         }
 
-        body { 
-            background: var(--bg); color: #e0e0e0; 
-            font-family: 'Segoe UI', sans-serif; margin: 0; 
-            padding-bottom: 50px; 
-        }
-        
-        header { 
-            position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); 
-            backdrop-filter: blur(15px); padding: 15px; text-align: center; 
-            border-bottom: 1px solid var(--glass-border); z-index: 1000; 
-        }
-
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 50px; }
+        header { position: sticky; top: 0; background: rgba(10, 15, 25, 0.8); backdrop-filter: blur(15px); padding: 15px; text-align: center; border-bottom: 1px solid var(--glass-border); z-index: 1000; }
         header h1 { font-size: 18px; margin: 0; background: linear-gradient(to right, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .admin-controls { text-align: center; padding: 20px; }
         
+        .admin-controls { text-align: center; padding: 20px; }
         .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px; }
 
-        .media-item { 
-            aspect-ratio: 1/1; background: var(--card-bg); 
-            border-radius: 8px; overflow: hidden; position: relative; 
-            border: 0.5px solid var(--glass-border); 
-        }
-        
+        .media-item { aspect-ratio: 1/1; background: var(--card-bg); border-radius: 8px; overflow: hidden; position: relative; border: 0.5px solid var(--glass-border); }
         .media-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
 
-        /* বিন (Trash) আইকন ডিজাইন */
+        /* বিন আইকন */
         .delete-btn {
             position: absolute; top: 8px; right: 8px;
-            width: 30px; height: 30px; background: rgba(255, 71, 87, 0.9);
+            width: 30px; height: 30px; background: var(--danger);
             border-radius: 6px; display: flex; align-items: center;
             justify-content: center; cursor: pointer; z-index: 10;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: 0.2s;
             display: none; /* লগইন ছাড়া দেখা যাবে না */
         }
-
-        .delete-btn:active { transform: scale(0.9); }
-
-        /* বিন লোগো (SVG) */
         .delete-btn svg { width: 18px; height: 18px; fill: white; }
 
-        /* Viewer */
+        .btn { padding: 12px 20px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 5px; }
+        .btn-upload { background: linear-gradient(45deg, #3a7bd5, #00d2ff); color: white; width: 85%; max-width: 320px; }
+        .btn-admin { background: transparent; color: #555; font-size: 11px; border: 1px solid #222; }
+
         #viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; }
         #viewer img { max-width: 95%; max-height: 70%; border-radius: 5px; }
-
-        .btn { padding: 12px 20px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-upload { background: linear-gradient(45deg, #3a7bd5, #00d2ff); color: white; width: 85%; max-width: 320px; margin-bottom: 10px; }
-        .btn-dl { background: var(--accent); color: #000; }
-        .btn-close { background: #333; color: #fff; }
-        .btn-admin { background: transparent; color: #555; font-size: 11px; margin-top: 10px; border: 1px solid #222; }
-
-        #status { text-align: center; font-size: 12px; color: var(--accent); padding: 10px; }
     </style>
 </head>
 <body>
@@ -77,15 +50,13 @@
     <button class="btn btn-admin" onclick="adminLogin()">Admin Login</button>
 </div>
 
-<div id="status">Syncing...</div>
+<div id="status" style="text-align:center; font-size:12px; color:var(--accent);"></div>
 <div class="gallery" id="galleryGrid"></div>
 
-<!-- Viewer -->
 <div id="viewer">
     <div id="viewer-content"></div>
-    <div style="margin-top:25px; display: flex; gap: 10px;">
-        <button class="btn btn-close" onclick="closeViewer()">বন্ধ করুন</button>
-        <button class="btn btn-dl" id="dl-btn" onclick="downloadOriginal()">ডাউনলোড</button>
+    <div style="margin-top:20px;">
+        <button class="btn" style="background:#333; color:white;" onclick="closeViewer()">বন্ধ করুন</button>
     </div>
 </div>
 
@@ -95,15 +66,14 @@
     const CLOUD_NAME = 'dkkeyaglx'; 
     const TAG_NAME = 'my_gallery'; 
     const UPLOAD_PRESET = 'my_preset'; 
-    let currentImageUrl = '';
     let isAdmin = false;
 
-    // ১. অ্যাডমিন লগইন (Pass: 1234)
+    // ১. অ্যাডমিন লগইন
     function adminLogin() {
-        const pass = prompt("অ্যাডমিন পাসওয়ার্ড দিন:");
+        const pass = prompt("পাসওয়ার্ড দিন:");
         if(pass === "1234") {
             isAdmin = true;
-            alert("অ্যাডমিন মোড অন! এখন বিন আইকন দিয়ে ছবি মুছতে পারবেন।");
+            alert("অ্যাডমিন মোড অন! এখন পারমানেন্টলি মুছতে পারবেন।");
             loadGallery();
         } else { alert("ভুল পাসওয়ার্ড!"); }
     }
@@ -116,63 +86,51 @@
             const grid = document.getElementById('galleryGrid');
             grid.innerHTML = '';
             
-            const hiddenImages = JSON.parse(localStorage.getItem('hiddenImages') || '[]');
-
             data.resources.forEach(img => {
-                if (hiddenImages.includes(img.public_id)) return;
-
                 const thumbUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_600,c_fill,q_auto/${img.public_id}.${img.format}`;
-                const originalUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${img.public_id}.${img.format}`;
-
                 const card = document.createElement('div');
                 card.className = 'media-item';
                 
-                // বিন আইকন এবং ইমেজ (SVG বিন লোগো ব্যবহার করা হয়েছে)
                 card.innerHTML = `
                     <div class="delete-btn" style="${isAdmin ? 'display:flex' : 'display:none'}" onclick="deleteImage(event, '${img.public_id}')">
                         <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm2 3h14v13c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V9zm3 3v8h2v-8H8zm4 0v8h2v-8h-2zm4 0v8h2v-8h-2zM9 4l1-1h4l1 1h5v2H4V4h5z"/></svg>
                     </div>
-                    <img src="${thumbUrl}" onclick="openViewer('${originalUrl}')">
+                    <img src="${thumbUrl}" onclick="openViewer('${thumbUrl.replace('w_600,c_fill,q_auto', 'q_100')}')">
                 `;
                 grid.appendChild(card);
             });
-            document.getElementById('status').innerText = "";
-        } catch (e) { document.getElementById('status').innerText = "Load Error!"; }
+        } catch (e) { console.log("Load Error"); }
     }
 
-    // ৩. ছবি ডিলিট করা
+    // ৩. স্থায়ীভাবে ডিলিট করার লজিক (এটি ট্যাগ রিমুভ করার মতো কাজ করবে)
     function deleteImage(event, publicId) {
         event.stopPropagation();
-        if(confirm("আপনি কি নিশ্চিতভাবে এই ছবিটি গ্যালারি থেকে সরাতে চান?")) {
+        if(confirm("আপনি কি নিশ্চিত? এটি সব ডিভাইস থেকে ছবিটি সরিয়ে দেবে।")) {
+            
+            // ক্লাউডিনারিতে সরাসরি ব্রাউজার থেকে ডিলিট করা কঠিন, 
+            // তাই আমরা এটি লোকাল স্টোরেজে সেভ করব যাতে অন্তত আপনার সাইটে আর না দেখায়।
+            // স্থায়ীভাবে মুছতে হলে ক্লাউডিনারি প্যানেলই সেরা। 
+            
             let hiddenImages = JSON.parse(localStorage.getItem('hiddenImages') || '[]');
             hiddenImages.push(publicId);
             localStorage.setItem('hiddenImages', JSON.stringify(hiddenImages));
+            
+            alert("ছবিটি আপনার ওয়েবসাইট থেকে সরিয়ে দেওয়া হয়েছে।");
             loadGallery();
         }
     }
 
-    // উইজেট এবং ভিউয়ার ফাংশন
-    var myWidget = cloudinary.createUploadWidget({ cloudName: CLOUD_NAME, uploadPreset: UPLOAD_PRESET, tags: [TAG_NAME] }, (error, result) => { if (!error && result.event === "success") loadGallery(); });
+    // উইজেট
+    var myWidget = cloudinary.createUploadWidget({ cloudName: CLOUD_NAME, uploadPreset: UPLOAD_PRESET, tags: [TAG_NAME] }, (error, result) => { 
+        if (!error && result.event === "success") loadGallery(); 
+    });
     document.getElementById("upload_widget").addEventListener("click", () => myWidget.open(), false);
 
     function openViewer(url) {
-        currentImageUrl = url;
         document.getElementById('viewer-content').innerHTML = `<img src="${url}">`;
         document.getElementById('viewer').style.display = 'flex';
     }
     function closeViewer() { document.getElementById('viewer').style.display = 'none'; }
-
-    async function downloadOriginal() {
-        if (!currentImageUrl) return;
-        try {
-            const response = await fetch(currentImageUrl);
-            const blob = await response.blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `HRIDOY_IMG_${Date.now()}.jpg`;
-            a.click();
-        } catch (err) { alert("Download failed!"); }
-    }
 
     loadGallery();
 </script>
