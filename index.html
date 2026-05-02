@@ -1,169 +1,254 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRIDOY'S CLOUD GALLERY</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- GramJS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/telegram/browser/telegram.js"></script>
+    <title>AI Photo Enhancer | It's Hridoy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+    
     <style>
-        body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; min-height: 100vh; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .btn-cyan { background: linear-gradient(90deg, #06b6d4, #3b82f6); transition: 0.3s; }
-        .btn-cyan:hover { transform: translateY(-2px); opacity: 0.9; }
-        input { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; }
-        .img-card { transition: 0.4s; }
-        .img-card:hover { transform: scale(1.03); }
+        :root {
+            --primary: #6366f1;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --accent: #22c55e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 20px 10%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .logo { font-size: 1.6rem; font-weight: 800; letter-spacing: 1px; }
+        .logo span { color: var(--primary); }
+
+        main {
+            flex: 1;
+            padding: 40px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; line-height: 1.2; }
+        .hero h1 span { color: var(--primary); }
+        .hero p { color: #94a3b8; font-size: 1.1rem; }
+
+        /* Upload Box */
+        .upload-container {
+            border: 2px dashed #4b5563;
+            padding: 50px 20px;
+            border-radius: 20px;
+            margin: 40px auto;
+            max-width: 500px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #1e293b;
+        }
+
+        .upload-container:hover {
+            border-color: var(--primary);
+            background: #232f44;
+            transform: translateY(-5px);
+        }
+
+        .upload-container i { font-size: 4rem; color: var(--primary); margin-bottom: 15px; }
+        .upload-container p { font-weight: 500; }
+        .upload-container span { text-decoration: underline; color: var(--primary); }
+
+        #fileElem { display: none; }
+
+        /* Comparison Slider */
+        .preview-section {
+            margin-top: 50px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .comparison-slider {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            height: 450px;
+            margin: 0 auto 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+
+        .image-container img { width: 100%; height: 100%; object-fit: cover; position: absolute; left: 0; top: 0; }
+        
+        .image-after-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+            border-right: 4px solid white;
+            z-index: 2;
+        }
+
+        .slider-input {
+            position: absolute;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            outline: none;
+            margin: 0;
+            z-index: 10;
+            cursor: ew-resize;
+            top: 0;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-enhance { background: var(--primary); color: white; }
+        .btn-download { background: var(--accent); color: white; }
+        .btn:hover { opacity: 0.9; transform: scale(1.05); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .comparison-slider { height: 300px; }
+            .hero h1 { font-size: 1.8rem; }
+        }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body>
 
-    <!-- Login Area -->
-    <div id="loginArea" class="max-w-md mx-auto mt-20 glass p-8 rounded-[40px] shadow-2xl">
-        <h2 class="text-3xl font-bold mb-2 text-center text-cyan-400 font-mono">HRIDOY CLOUD</h2>
-        <p class="text-gray-400 text-xs text-center mb-8 uppercase tracking-widest">Login with Telegram</p>
-        
-        <div class="space-y-5">
-            <input type="text" id="phone" placeholder="+88017XXXXXXXX" class="w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-500 text-lg">
-            <button onclick="startLogin()" id="loginBtn" class="w-full btn-cyan p-4 rounded-2xl font-bold text-lg">Send Code</button>
+    <header>
+        <div class="logo">Enhance<span>AI</span></div>
+        <div class="user-id">It's Hridoy</div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>পুরানো বা ঝাপসা ছবিকে করুন <br><span>স্মার্টলি এনহ্যান্স</span></h1>
+            <p>AI দিয়ে আপনার ছবির ডিটেইলস এবং শার্পনেস ফিরিয়ে আনুন।</p>
             
-            <div id="codeSection" class="hidden space-y-5 pt-5 border-t border-white/10">
-                <p class="text-center text-yellow-400 text-sm">Check your Telegram App for the code!</p>
-                <input type="text" id="code" placeholder="Enter 5-digit OTP" class="w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-green-500 text-center text-2xl tracking-[10px]">
-                <button onclick="submitCode()" class="w-full bg-green-500 p-4 rounded-2xl font-bold text-lg hover:bg-green-600 transition">Verify & Login</button>
+            <div class="upload-container" id="drop-area">
+                <i class="fas fa-file-image"></i>
+                <p>ছবি ড্র্যাগ করুন অথবা এখানে <span>ক্লিক করুন</span></p>
+                <input type="file" id="fileElem" accept="image/*" onchange="handleFiles(this.files)">
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Gallery Area -->
-    <div id="galleryArea" class="hidden max-w-7xl mx-auto">
-        <header class="flex justify-between items-center mb-12 glass p-6 rounded-[30px] border-white/10">
-            <div>
-                <h1 class="text-3xl font-black italic tracking-tighter">HRIDOY<span class="text-cyan-400">GALLERY</span></h1>
-                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Unlimited Telegram Storage</p>
+        <!-- Preview Section -->
+        <section class="preview-section" id="preview-section" style="display:none;">
+            <div class="comparison-slider">
+                <div class="image-container">
+                    <!-- Original Image (Right side) -->
+                    <img class="image-before" src="" alt="After Enhancement">
+                    
+                    <!-- Overlay Image (Left side) -->
+                    <div class="image-after-overlay" id="overlay">
+                         <img class="image-after" src="" alt="Before Enhancement" id="img-after-el">
+                    </div>
+                </div>
+                <!-- Control Slider -->
+                <input type="range" min="0" max="100" value="50" class="slider-input" id="compare-slider">
             </div>
-            <button onclick="logout()" class="bg-red-500/10 text-red-500 px-6 py-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 font-bold transition">Logout</button>
-        </header>
-
-        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            <!-- Photos will be loaded here -->
-        </div>
-
-        <div id="loader" class="text-center mt-20 hidden">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-500 mb-4"></div>
-            <p class="text-cyan-400 font-mono tracking-widest">FETCHING FROM CLOUD...</p>
-        </div>
-    </div>
+            
+            <div class="actions">
+                <button class="btn btn-enhance" onclick="simulateEnhance()"><i class="fas fa-wand-magic-sparkles"></i> Enhance Now</button>
+                <button class="btn btn-download" onclick="alert('Downloading...')"><i class="fas fa-download"></i> Download Image</button>
+            </div>
+        </section>
+    </main>
 
     <script>
-        const { TelegramClient } = telegram;
-        const { StringSession } = telegram.sessions;
+        const slider = document.getElementById('compare-slider');
+        const overlay = document.getElementById('overlay');
+        const previewSection = document.getElementById('preview-section');
+        const imgBefore = document.querySelector('.image-before');
+        const imgAfter = document.querySelector('.image-after');
+        const imgAfterEl = document.getElementById('img-after-el');
 
-        // আপনার API ডাটা
-        const apiId = 35956481;
-        const apiHash = "0718456773c2c6e400717d6acd68a353";
-        const sessionKey = "hridoy_session_v3";
-        
-        // ক্লায়েন্ট আগে থেকেই তৈরি করে রাখা (Initialization Fix)
-        const stringSession = new StringSession(localStorage.getItem(sessionKey) || "");
-        const client = new TelegramClient(stringSession, apiId, apiHash, { 
-            connectionRetries: 5,
-            useWSS: true 
+        // স্লাইডার মুভ করার লজিক
+        slider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            overlay.style.width = `${value}%`;
         });
 
-        async function init() {
-            if (localStorage.getItem(sessionKey)) {
-                document.getElementById('loginArea').classList.add('hidden');
-                document.getElementById('galleryArea').classList.remove('hidden');
-                try {
-                    await client.connect();
-                    fetchPhotos();
-                } catch (e) {
-                    console.log("Connect error, clearing session...");
-                    localStorage.removeItem(sessionKey);
-                    location.reload();
+        // ইমেজ আপলোড হ্যান্ডলার
+        function handleFiles(files) {
+            const file = files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgBefore.src = e.target.result;
+                    imgAfter.src = e.target.result;
+                    
+                    // স্লাইডারে ছবি দেখানোর জন্য কন্টেইনারের সাইজ ঠিক করা
+                    imgAfterEl.style.width = document.querySelector('.comparison-slider').offsetWidth + 'px';
+                    
+                    previewSection.style.display = 'block';
+                    previewSection.scrollIntoView({ behavior: 'smooth' });
                 }
+                reader.readAsDataURL(file);
             }
         }
 
-        async function startLogin() {
-            const phone = document.getElementById('phone').value.trim();
-            if(!phone) return alert("Phone number is required!");
+        // ড্র্যাগ অ্যান্ড ড্রপ সেটিংস
+        const dropArea = document.getElementById('drop-area');
+        dropArea.onclick = () => document.getElementById('fileElem').click();
 
-            const loginBtn = document.getElementById('loginBtn');
-            loginBtn.innerText = "Connecting...";
-            loginBtn.disabled = true;
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = "#6366f1";
+        });
 
-            try {
-                await client.connect();
-                window.res = await client.sendCode({ apiId, apiHash }, phone);
-                document.getElementById('codeSection').classList.remove('hidden');
-                loginBtn.innerText = "Code Sent!";
-            } catch (err) {
-                alert("Error: " + err.message);
-                loginBtn.innerText = "Send Code";
-                loginBtn.disabled = false;
-            }
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.borderColor = "#4b5563";
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const dt = e.dataTransfer;
+            handleFiles(dt.files);
+        });
+
+        // এনহ্যান্স সিমুলেশন (এটি জাস্ট দেখানোর জন্য একটি ফিল্টার অ্যাড করবে)
+        function simulateEnhance() {
+            imgBefore.style.filter = "contrast(1.2) brightness(1.1) saturate(1.1) sharp(2px)";
+            alert("AI Enhancement applied! (Demo Mode)");
         }
-
-        async function submitCode() {
-            const code = document.getElementById('code').value.trim();
-            const phone = document.getElementById('phone').value.trim();
-            
-            try {
-                await client.signIn({
-                    phoneNumber: phone,
-                    phoneCode: code,
-                    phoneCodeHash: window.res.phoneCodeHash
-                });
-                
-                localStorage.setItem(sessionKey, client.session.save());
-                location.reload();
-            } catch (e) {
-                alert("Invalid Code! Try again.");
-            }
-        }
-
-        async function fetchPhotos() {
-            const loader = document.getElementById('loader');
-            const grid = document.getElementById('galleryGrid');
-            loader.classList.remove('hidden');
-            
-            try {
-                // আপনার চ্যানেলের ইউজারনেম
-                const result = await client.getMessages("HRIDOYGALL", { limit: 60 });
-                
-                for (const msg of result) {
-                    if (msg.media && msg.media.photo) {
-                        const buffer = await client.downloadMedia(msg.media, {});
-                        const blob = new Blob([buffer], { type: 'image/jpeg' });
-                        const url = URL.createObjectURL(blob);
-                        
-                        const card = document.createElement('div');
-                        card.className = "glass p-2 rounded-3xl img-card relative group overflow-hidden shadow-xl";
-                        card.innerHTML = `
-                            <img src="${url}" class="w-full h-64 object-cover rounded-[20px] transition duration-700 group-hover:scale-110">
-                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-4">
-                                <a href="${url}" download="hridoy_cloud.jpg" class="bg-cyan-500 text-white w-full py-3 rounded-xl font-bold text-center text-xs shadow-lg shadow-cyan-500/40">DOWNLOAD</a>
-                            </div>
-                        `;
-                        grid.appendChild(card);
-                    }
-                }
-            } catch (err) {
-                console.error("Fetch Error:", err);
-            }
-            loader.classList.add('hidden');
-        }
-
-        function logout() {
-            localStorage.clear();
-            location.reload();
-        }
-
-        // রান করা
-        init();
     </script>
 </body>
 </html>
